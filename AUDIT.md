@@ -423,8 +423,28 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
 
 | ID | Problem | Root cause | Files | Status |
 |----|---------|-----------|-------|--------|
-| W-1 | Nav visible on upload/review screens | AppNavbar + MobileBottomBar render unconditionally in appState==="app" | app/page.js | pending |
+| W-1 | Nav visible on upload/review screens | AppNavbar + MobileBottomBar render unconditionally in appState==="app" | app/page.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
 | W-2 | Skill World tab in nav + onboarding | tab in 3 arrays + tour step + guide copy | app/page.js, MobileBottomBar.js, Hotbar.jsx, Tour.jsx | pending |
 | W-4 | Back from Resume Lab → upload | profile-load else branch discards cachedProfile when jobs empty | app/page.js | pending |
 | W-5 | Steps popup re-appears | global cv_tour_v1, written only on close, not user-scoped | app/page.js, Tour.jsx, userStorage.js | pending |
 | W-3 | Anvil/Crafting jargon; review tab no PDF | legacy persona names; readFile rejects PDF/DOCX | review/page.js, compare/page.js | pending |
+
+## USER VERIFICATION blocks
+
+### W-1 — nav visibility gate
+- **Change:** added `const navVisible = !!profile && findState === "results";` and wrapped
+  `<AppNavbar>` and `<MobileBottomBar>` in `{navVisible && (...)}`. Nav now renders only when a
+  profile is loaded AND the dashboard is real (results). Upload / parsing / profile-review /
+  matching screens render no nav; while the profile loads nothing renders (no flash).
+- **Files:** `app/page.js`.
+- **How to verify (browser):**
+  1. `npm run dev`, open `http://localhost:3000`, log in with an account that has NO profile.
+  2. On the "Upload Your Resume" screen: confirm there is NO top nav bar and NO mobile hotbar
+     (resize to 375px to check the hotbar is gone too).
+  3. Upload a resume → profile-review screen: still NO nav.
+  4. Click "Find Matches" → dashboard with jobs: nav bar APPEARS (Find Jobs / My Jobs /
+     Career Path / Resume Lab) with no layout jump.
+  5. Hard-refresh on the dashboard: nav stays.
+- **Status:** compiles clean (HTTP 200, 796 modules); logic is code-review verified. The
+  click-path above is the browser confirmation only the user can run end-to-end (needs a real
+  login + resume upload).

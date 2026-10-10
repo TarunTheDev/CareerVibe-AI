@@ -5179,6 +5179,12 @@ export default function App() {
   // ── jobsLoaded: controls sidebar visibility and layout mode ──
   const jobsLoaded = findState === "results" && jobs.length > 0;
 
+  // ── W-1: the nav (top bar + mobile hotbar) renders ONLY once the dashboard
+  // is real — a loaded profile for this account AND a post-profile screen.
+  // On the upload / parsing / profile-review / matching screens there is no nav,
+  // and while the profile is still loading nothing renders (no flash). ──
+  const navVisible = !!profile && findState === "results";
+
   // ── Compute career paths for sidebar ──
   const careerPaths =
     profile?.careerPaths ||
@@ -5211,22 +5217,24 @@ export default function App() {
         overflow: "hidden",
       }}
     >
-      <AppNavbar
-        isDark={isDark}
-        T={T}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        savedCount={savedJobs.length}
-        toggleTheme={toggleTheme}
-        resetSession={resetSession}
-        goHome={goHome}
-        onSignOut={handleSignOut}
-        user={user}
-        onNavigate={(path) => router.push(path)}
-        onOpenLeftDrawer={() => setShowLeftDrawer(true)}
-        jobsLoaded={jobsLoaded}
-        onReplayTour={() => setTourOpen(true)}
-      />
+      {navVisible && (
+        <AppNavbar
+          isDark={isDark}
+          T={T}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          savedCount={savedJobs.length}
+          toggleTheme={toggleTheme}
+          resetSession={resetSession}
+          goHome={goHome}
+          onSignOut={handleSignOut}
+          user={user}
+          onNavigate={(path) => router.push(path)}
+          onOpenLeftDrawer={() => setShowLeftDrawer(true)}
+          jobsLoaded={jobsLoaded}
+          onReplayTour={() => setTourOpen(true)}
+        />
+      )}
 
       <Tour open={tourOpen} onClose={() => setTourOpen(false)} />
 
@@ -5457,16 +5465,18 @@ export default function App() {
         </div>
       </main>
 
-      {/* ── Mobile Bottom Bar ── */}
-      <MobileBottomBar
-        T={T}
-        isDark={isDark}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        savedCount={savedJobs.length}
-        onOpenLeftDrawer={() => setShowLeftDrawer(true)}
-        onOpenRightDrawer={() => setShowRightDrawer(true)}
-      />
+      {/* ── Mobile Bottom Bar — W-1: only once the dashboard is real ── */}
+      {navVisible && (
+        <MobileBottomBar
+          T={T}
+          isDark={isDark}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          savedCount={savedJobs.length}
+          onOpenLeftDrawer={() => setShowLeftDrawer(true)}
+          onOpenRightDrawer={() => setShowRightDrawer(true)}
+        />
+      )}
 
       {/* ── Drawer overlays for Left Sidebar (mobile/tablet) ── */}
       {false && selectedJob && (
