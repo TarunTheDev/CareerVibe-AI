@@ -1,0 +1,268 @@
+/* ════════════════════════════════════════════════════════════════════════
+   CAREER CRAFT — MINECRAFT THEME LAYER
+   Loaded LAST (after globals.css + retro-overrides.css) so it wins the
+   cascade. Retargets every existing token set (retro --*, landing --rv-*)
+   to the Minecraft pixel palette and imposes the blocky look globally.
+   No component logic is touched — tokens + base styles only.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Minecraft palette tokens ─────────────────────────────────────────── */
+:root {
+  --mc-grass:      #5DAA3A;
+  --mc-grass-dark: #3F7A27;
+  --mc-dirt:       #8B5A2B;
+  --mc-dirt-dark:  #5E3C1C;
+  --mc-stone:      #8A8A8A;
+  --mc-stone-dark: #4A4A4A;
+  --mc-bedrock:    #1B1B1B;
+  --mc-diamond:    #4FE3E0;
+  --mc-gold:       #F5C542;
+  --mc-redstone:   #D8402E;
+  --mc-lapis:      #2F4FBF;
+  --mc-emerald:    #3DDC84;
+  --mc-parchment:  #EAD9B0;
+  --mc-ink:        #1A1410;
+  --mc-font-display: "Press Start 2P", "Space Grotesk", system-ui, monospace;
+  --mc-font-body: "VT323", "Space Grotesk", system-ui, monospace;
+}
+
+/* Retarget the dashboard/retro token set (retro-overrides.css) */
+[data-theme="light"] {
+  --bg:            #EAD9B0;
+  --bg2:           #F4E8CC;
+  --bg3:           #F7EED8;
+  --bg4:           #E2CFA4;
+  --text:          #1A1410;
+  --text2:         #4A3B2A;
+  --text3:         #7A6A52;
+  --accent:        #5DAA3A;
+  --accent-deep:   #3F7A27;
+  --accent2:       #3DDC84;
+  --accent-dim:    rgba(93, 170, 58, 0.14);
+  --border:        #1A1410;
+  --border-accent: #5DAA3A;
+  --gold:          #F5C542;
+  --card-shadow:   4px 4px 0 #1A1410;
+  --card-shadow-md: 6px 6px 0 #1A1410;
+  --shadow-sm:     2px 2px 0 #1A1410;
+  --glow:          6px 6px 0 #1A1410;
+  --ink:           #1A1410;
+  --paper:         #F7EED8;
+}
+[data-theme="dark"] {
+  --bg:            #1B1B1B;
+  --bg2:           #262626;
+  --bg3:           #2E2E2E;
+  --bg4:           #212121;
+  --text:          #EAD9B0;
+  --text2:         #C9B98F;
+  --text3:         #9A8C6C;
+  --accent:        #5DAA3A;
+  --accent-deep:   #7BC850;
+  --accent2:       #3DDC84;
+  --accent-dim:    rgba(93, 170, 58, 0.18);
+  --border:        #EAD9B0;
+  --border-accent: #7BC850;
+  --gold:          #F5C542;
+  --card-shadow:   4px 4px 0 #EAD9B0;
+  --card-shadow-md: 6px 6px 0 #EAD9B0;
+  --shadow-sm:     2px 2px 0 #EAD9B0;
+  --glow:          6px 6px 0 #EAD9B0;
+  --ink:           #EAD9B0;
+  --paper:         #262626;
+}
+
+/* ── Depth tokens (chunky block) ────────────────────────────────────── */
+:root {
+  --depth-1: 2px;
+  --depth-2: 4px;
+  --depth-3: 6px;
+  --shadow-1: 2px 2px 0 var(--rv-shadow, #1A1410);
+  --shadow-2: 4px 4px 0 var(--rv-shadow, #1A1410);
+  --shadow-3: 6px 6px 0 var(--rv-shadow, #1A1410);
+  --bevel-light: rgba(255,255,255,0.34);
+  --bevel-dark: rgba(0,0,0,0.28);
+}
+
+/* ── Chunky block — hero / section cards / primary buttons / guide strip ─ */
+.block-3d, .rv-card.block-3d, .rv-price-card.block-3d, .rv-window.block-3d {
+  position: relative;
+  border: 3px solid var(--rv-shadow, #1A1410);
+  box-shadow: var(--shadow-2), inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark);
+  transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s ease;
+}
+.block-3d:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-3), inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark);
+}
+.block-3d:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-1), inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark);
+}
+.block-3d-sm {
+  position: relative;
+  border: 2px solid var(--rv-shadow, #1A1410);
+  box-shadow: var(--shadow-1), inset 1px 1px 0 var(--bevel-light), inset -1px -1px 0 var(--bevel-dark);
+}
+/* Dense data stays flat — job list, tables, chat */
+.flat-data, .job-card-flat, .rv-demo-card.flat-data {
+  box-shadow: var(--shadow-1);
+  border: 2px solid var(--rv-shadow, #1A1410);
+}
+@media (prefers-reduced-motion: reduce) {
+  .block-3d, .block-3d:hover, .block-3d:active, .block-3d-sm { transition: none; transform: none !important; }
+}
+
+/* Retarget the landing token set (landing-retro.css) */
+:root,
+[data-theme="light"] {
+  --rv-bg:        #EAD9B0;
+  --rv-bg2:       #E2CFA4;
+  --rv-paper:     #F7EED8;
+  --rv-ink:       #1A1410;
+  --rv-ink-soft:  #4A3B2A;
+  --rv-ink-faint: #7A6A52;
+  --rv-line:      #1A1410;
+  --rv-shadow:    #1A1410;
+  --rv-orange:    #5DAA3A;
+  --rv-orange-deep:#3F7A27;
+  --rv-yellow:    #F5C542;
+  --rv-mint:      #3DDC84;
+  --rv-blue:      #4FE3E0;
+  --rv-radius:    4px;
+  --rv-radius-lg: 6px;
+  --rv-font-display: var(--mc-font-display);
+}
+[data-theme="dark"] {
+  --rv-bg:        #1B1B1B;
+  --rv-bg2:       #212121;
+  --rv-paper:     #262626;
+  --rv-ink:       #EAD9B0;
+  --rv-ink-soft:  #C9B98F;
+  --rv-ink-faint: #9A8C6C;
+  --rv-line:      #EAD9B0;
+  --rv-shadow:    #EAD9B0;
+  --rv-orange:    #7BC850;
+  --rv-orange-deep:#5DAA3A;
+  --rv-yellow:    #F5C542;
+  --rv-mint:      #3DDC84;
+  --rv-blue:      #4FE3E0;
+  --rv-font-display: var(--mc-font-display);
+}
+
+/* ── Tiled dirt/stone background (subtle, low contrast) ───────────────── */
+html, body {
+  background-color: var(--mc-bedrock);
+}
+[data-theme="light"] body,
+body[data-theme="light"] {
+  background-color: #E2CFA4;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%23E2CFA4'/%3E%3Crect x='0' y='0' width='4' height='4' fill='%23DCC698'/%3E%3Crect x='8' y='4' width='4' height='4' fill='%23DFC99C'/%3E%3Crect x='4' y='10' width='4' height='4' fill='%23DCC698'/%3E%3Crect x='12' y='12' width='4' height='4' fill='%23DFC99C'/%3E%3C/svg%3E");
+  image-rendering: pixelated;
+}
+[data-theme="dark"] body,
+body[data-theme="dark"] {
+  background-color: #1B1B1B;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%231B1B1B'/%3E%3Crect x='0' y='0' width='4' height='4' fill='%23232323'/%3E%3Crect x='8' y='4' width='4' height='4' fill='%23202020'/%3E%3Crect x='4' y='10' width='4' height='4' fill='%23232323'/%3E%3Crect x='12' y='12' width='4' height='4' fill='%23202020'/%3E%3C/svg%3E");
+  image-rendering: pixelated;
+}
+
+/* ── Blocky base: kill soft rounding, hard pixel shadows ──────────────── */
+.rv-card, .rv-btn, .rv-chip,
+[data-theme] .card, [data-theme] button, [data-theme] input, [data-theme] select {
+  border-radius: 4px;
+}
+
+/* Pixel font on display headings; keep body readable */
+h1, h2, h3, .font-display, .rv-hero-title, .rv-section-title {
+  font-family: var(--mc-font-display);
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+/* Pixel rendering for any pixel art / sprites */
+img, canvas, .pixelated {
+  image-rendering: pixelated;
+}
+
+/* Blocky focus ring in diamond */
+[data-theme] button:focus-visible,
+[data-theme] a:focus-visible,
+[data-theme] input:focus-visible {
+  outline: 3px solid var(--mc-diamond);
+  outline-offset: 2px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   P3-2 — 3D "CHUNKY BLOCK" DEPTH SYSTEM
+   One light source (top-left). Big surfaces (hero, section cards, primary
+   buttons, guide strip) get visible top/side bevel faces + hard offset
+   shadows and lift on hover / sink on press. Dense data stays flat.
+   ════════════════════════════════════════════════════════════════════════ */
+:root {
+  --depth-1: 3px;
+  --depth-2: 6px;
+  --depth-3: 10px;
+  --bevel-light: rgba(255, 255, 255, 0.38);
+  --bevel-dark: rgba(0, 0, 0, 0.38);
+}
+
+.mc-block {
+  position: relative;
+  border: 3px solid var(--mc-ink);
+  border-radius: 4px;
+  box-shadow:
+    inset 3px 3px 0 var(--bevel-light),
+    inset -3px -3px 0 var(--bevel-dark),
+    var(--depth-2) var(--depth-2) 0 var(--mc-ink);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.mc-block:hover {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    inset 3px 3px 0 var(--bevel-light),
+    inset -3px -3px 0 var(--bevel-dark),
+    var(--depth-3) var(--depth-3) 0 var(--mc-ink);
+}
+.mc-block:active {
+  transform: translate(2px, 2px);
+  box-shadow:
+    inset 3px 3px 0 var(--bevel-light),
+    inset -3px -3px 0 var(--bevel-dark),
+    1px 1px 0 var(--mc-ink);
+}
+
+/* Apply the block bevel to primary CTAs + landing section cards (depth, not layout) */
+.rv-btn-primary,
+.rv-btn-ink {
+  box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), var(--depth-1) var(--depth-1) 0 var(--rv-shadow) !important;
+}
+.rv-btn-primary:hover,
+.rv-btn-ink:hover {
+  box-shadow: inset 2px 2px 0 var(--bevel-light), inset -2px -2px 0 var(--bevel-dark), var(--depth-2) var(--depth-2) 0 var(--rv-shadow) !important;
+}
+
+/* ── Hero depth layers + pointer parallax (vars set by JS on desktop) ────── */
+.rv-hero { perspective: 1200px; }
+.rv-hero__media { transform: translateZ(-60px) scale(1.08); }
+.rv-hero .rv-hero-inner {
+  transform: translate3d(calc(var(--px, 0) * -10px), calc(var(--py, 0) * -10px), 0);
+  transition: transform 0.2s ease-out;
+}
+.rv-hero .rv-sticker {
+  transform: translate3d(calc(var(--px, 0) * 18px), calc(var(--py, 0) * 18px), 0) rotate(var(--rv-tilt, 0deg));
+}
+
+/* Dense data stays flat — never add 3D lift to job lists/tables/chat */
+.job-card-shell, .results-shell, .rv-faq, table, .chat-panel { transform: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-block, .rv-btn-primary, .rv-btn-ink { transition: none; }
+  .mc-block:hover, .mc-block:active { transform: none; }
+  .rv-hero .rv-hero-inner, .rv-hero .rv-sticker { transform: none !important; }
+  .rv-hero__media { transform: scale(1.08); }
+}
+/* No parallax on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .rv-hero .rv-hero-inner, .rv-hero .rv-sticker { transform: none !important; }
+}
