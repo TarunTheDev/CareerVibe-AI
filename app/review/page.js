@@ -6,6 +6,7 @@ import { runResumeChecks, quoteIsInSource } from "@/lib/resumeChecks.mjs";
 import { normalizeSkillList } from "@/lib/skillNormalize.mjs";
 import { BlockButton, BlockCard, CheckSlot, QuoteBlock, AdvancementToast, MiningLoader, MC } from "@/components/pixel/ui.jsx";
 import PixelCharacter from "@/components/pixel/PixelCharacter";
+import ResumeLabTabs from "@/components/pixel/ResumeLabTabs";
 
 // Synthetic, clearly-labeled sample resume. Never presented as real.
 const SAMPLE_RESUME = `Priya Sharma
@@ -228,6 +229,7 @@ Resume:
       </header>
 
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "1.5rem 1rem 4rem" }}>
+        <ResumeLabTabs active="review" T={T} />
         {/* W-3a: the single, unmissable page heading */}
         <div style={{ marginBottom: "20px" }}>
           <h1 style={{ margin: 0, fontFamily: MC.display, fontSize: "clamp(1.7rem, 5vw, 2.6rem)", lineHeight: 1.1, letterSpacing: "0.01em", color: T.text }}>Resume Reviewer</h1>
