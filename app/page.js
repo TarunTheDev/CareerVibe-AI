@@ -375,7 +375,6 @@ function AppNavbar({
     { id: "myjobs", label: "My Jobs", icon: <Briefcase size={14} />, desc: "Saved / Applied / Interview / Offer — your pipeline" },
     { id: "career", label: "Career Path", icon: <TrendingUp size={14} />, desc: "Match score, gaps & 3-step plan for any target role" },
     { id: "resumelab", label: "Resume Lab", icon: <FileText size={14} />, desc: "Review my resume or compare two versions" },
-    { id: "world", label: "Skill World", icon: <Globe size={14} />, desc: "Your skills as a 3D block map — fill the gaps" },
   ];
   const myJobsCount = savedCount + appliedCount + interviewCount;
 
@@ -412,7 +411,6 @@ function AppNavbar({
             <button
               key={tab.id}
               onClick={() => {
-                if (tab.id === "world") { onNavigate?.("/world"); return; }
                 if (tab.id === "resumelab") { onNavigate?.("/review"); return; }
                 setActiveTab(tab.id === "myjobs" ? "saved" : tab.id);
               }}
@@ -462,7 +460,7 @@ function AppNavbar({
               {NAV.map((n) => (
                 <div key={n.id} style={{ display: "flex", gap: 6, marginBottom: 4 }}><span style={{ flexShrink: 0 }}>{n.icon}</span><span><strong>{n.label}:</strong> {n.desc}</span></div>
               ))}
-              <div style={{ marginTop: 6, color: T.text3, fontSize: "0.72rem" }}>Resume Review &amp; Compare live inside Resume Lab. Skill World is your 3D skill map.</div>
+              <div style={{ marginTop: 6, color: T.text3, fontSize: "0.72rem" }}>Resume Review &amp; Compare live inside Resume Lab.</div>
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Search, Briefcase, TrendingUp, FileText, Globe } from "lucide-react";
+import { Search, Briefcase, TrendingUp, FileText } from "lucide-react";
 
 export default function MobileBottomBar({ T, isDark, activeTab, setActiveTab }) {
   const router = useRouter();
@@ -9,10 +9,8 @@ export default function MobileBottomBar({ T, isDark, activeTab, setActiveTab }) 
     { id: "saved", icon: <Briefcase size={18} />, label: "My Jobs", desc: "Saved / Applied / Interview / Offer" },
     { id: "career", icon: <TrendingUp size={18} />, label: "Career Path", desc: "Match score, gaps & 3-step plan" },
     { id: "resumelab", icon: <FileText size={18} />, label: "Resume Lab", desc: "Review or compare resumes" },
-    { id: "world", icon: <Globe size={18} />, label: "Skill World", desc: "Your skills as a 3D block map", route: "/world" },
   ];
   const go = (it) => {
-    if (it.route) { router.push(it.route); return; }
     if (it.id === "resumelab") { router.push("/review"); return; }
     setActiveTab(it.id === "saved" ? "saved" : it.id);
   };

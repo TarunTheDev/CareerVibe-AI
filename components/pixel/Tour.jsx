@@ -10,8 +10,8 @@ import { BlockButton, MC } from "@/components/pixel/ui.jsx";
 const STEPS = [
   { who: "pip", title: "Find Jobs", body: "Upload your resume and CareerVibe matches you to real roles, showing exactly which skills line up." },
   { who: "ren", title: "My Jobs", body: "Saved, Applied, Interview and Offer all live here as tabs — your whole pipeline in one place." },
+  { who: "bo", title: "Career Path", body: "Pick any target role to see your match score, the gaps in the way, and a three-step plan to close them." },
   { who: "lumi", title: "Resume Lab", body: "Review one resume honestly, or compare two versions of yours. No fake scores — just specific, checkable feedback." },
-  { who: "bo", title: "Skill World", body: "Your skills as a blocky 3D-style map. Tap a gap to mark it learned and watch the structure fill in." },
 ];
 
 export default function Tour({ open: openProp, onClose }) {

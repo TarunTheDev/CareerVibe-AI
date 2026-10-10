@@ -1,20 +1,18 @@
 "use client";
 
-import { Search, Briefcase, TrendingUp, FileText, Globe } from "lucide-react";
+import { Search, Briefcase, TrendingUp, FileText } from "lucide-react";
 import { MC } from "@/components/pixel/ui";
 
-// 5-item Career Craft hotbar — mobile bottom nav. Matches AppNavbar NAV.
+// 4-item hotbar — mobile bottom nav. Matches AppNavbar NAV.
 const SLOTS = [
   { id: "find", label: "Find Jobs", icon: Search, desc: "Browse roles matched to your resume" },
   { id: "saved", label: "My Jobs", icon: Briefcase, desc: "Saved / Applied / Interview / Offer" },
   { id: "career", label: "Career Path", icon: TrendingUp, desc: "Match score, gaps & 3-step plan" },
   { id: "resumelab", label: "Resume Lab", icon: FileText, desc: "Review or compare resumes" },
-  { id: "world", label: "Skill World", icon: Globe, desc: "Your skills as a 3D block map" },
 ];
 
 export default function Hotbar({ activeId, onNavigate }) {
   const handle = (s) => {
-    if (s.id === "world") { window.location.href = "/world"; return; }
     if (s.id === "resumelab") { window.location.href = "/review"; return; }
     onNavigate?.(s.id);
   };
@@ -29,7 +27,7 @@ export default function Hotbar({ activeId, onNavigate }) {
         right: 0,
         zIndex: 900,
         display: "grid",
-        gridTemplateColumns: "repeat(5, 1fr)",
+        gridTemplateColumns: "repeat(4, 1fr)",
         gap: 4,
         padding: 6,
         paddingBottom: "calc(6px + env(safe-area-inset-bottom, 0px))",

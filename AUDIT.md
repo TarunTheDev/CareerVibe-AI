@@ -424,7 +424,7 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
 | ID | Problem | Root cause | Files | Status |
 |----|---------|-----------|-------|--------|
 | W-1 | Nav visible on upload/review screens | AppNavbar + MobileBottomBar render unconditionally in appState==="app" | app/page.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
-| W-2 | Skill World tab in nav + onboarding | tab in 3 arrays + tour step + guide copy | app/page.js, MobileBottomBar.js, Hotbar.jsx, Tour.jsx | pending |
+| W-2 | Skill World tab in nav + onboarding | tab in 3 arrays + tour step + guide copy | app/page.js, MobileBottomBar.js, Hotbar.jsx, Tour.jsx | **FIXED [CODE-REVIEW + grep-proof + all routes compile 200]** |
 | W-4 | Back from Resume Lab → upload | profile-load else branch discards cachedProfile when jobs empty | app/page.js | pending |
 | W-5 | Steps popup re-appears | global cv_tour_v1, written only on close, not user-scoped | app/page.js, Tour.jsx, userStorage.js | pending |
 | W-3 | Anvil/Crafting jargon; review tab no PDF | legacy persona names; readFile rejects PDF/DOCX | review/page.js, compare/page.js | pending |
@@ -448,3 +448,25 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
 - **Status:** compiles clean (HTTP 200, 796 modules); logic is code-review verified. The
   click-path above is the browser confirmation only the user can run end-to-end (needs a real
   login + resume upload).
+
+### W-2 — remove Skill World tab + onboarding sweep
+- **Change:** removed the `world` entry from the AppNavbar `NAV` array (`app/page.js`), the
+  mobile hotbar `items` (`components/MobileBottomBar.js`), and the dead `Hotbar.jsx` `SLOTS`
+  (grid rebalanced 5→4 columns); dropped the `tab.id === "world"` click branch and the
+  avatar-menu guide-copy sentence about Skill World; replaced the Skill World tour step with a
+  Career Path step so the tour now matches the 4-item nav (Find Jobs / My Jobs / Career Path /
+  Resume Lab). `/world` route, its components and the `worldPlan` runtime are untouched.
+- **Files:** `app/page.js`, `components/MobileBottomBar.js`, `components/pixel/Hotbar.jsx`,
+  `components/pixel/Tour.jsx`.
+- **Grep-proof:** `grep -rn "Skill World" app components` returns ONLY `app/world/page.js:105`
+  (the route's own page title, explicitly allowed). No `/world` or `world` tab-id references
+  remain in nav/help/guide/tour.
+- **How to verify (browser):**
+  1. On the dashboard, the top bar reads Find Jobs / My Jobs / Career Path / Resume Lab (4 items).
+  2. At 375px the mobile hotbar shows the same four with labels, evenly spaced.
+  3. Help popover ("?") lists only those four; no Skill World line.
+  4. Account menu → Replay tour: 4 steps, none about Skill World.
+  5. Direct URL `http://localhost:3000/world` still renders (title "Voxel Skill World") with a
+     "← Back" affordance to the dashboard; no console errors.
+- **Status:** all four routes (`/`, `/review`, `/compare`, `/world`) compile and return HTTP 200;
+  grep-proofed. RUN-VERIFIED for compile + grep; the visual nav layout is code-review only.
