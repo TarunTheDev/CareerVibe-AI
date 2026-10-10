@@ -5434,6 +5434,7 @@ export default function App() {
                 T={T}
                 isDark={isDark}
                 profile={profile}
+                uid={user?.uid}
                 onGoUpload={() => {
                   setActiveTab("find");
                   setFindState("upload");
