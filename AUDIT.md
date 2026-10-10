@@ -367,3 +367,64 @@ New keys this pass (mission-permitted): `cv_agent_v1`, `cv_compare_v1`, `cv_demo
 - Landing testimonial (flag, do not edit).
 - "200+ jobs" claim (flag, do not edit).
 - Gemini key env var value (user said they will provide) — required for real job capture.
+
+---
+
+# Workflow Hotfix Pass (W-1..W-5)
+
+Environment note (differs from the spec's assumption): in THIS environment the dev server
+and browser-use MCP DO run, so fixes are verified live where possible (labelled
+RUN-VERIFIED) in addition to code review. Gemini key for AI resume review is applied in the
+gitignored `.env.local` as `GEMINI_API_KEY` (+ `GEMINI_MODEL=gemini-3.8-flash`); the
+`/api/chat` route reads `GEMINI_API_KEY` with fallback `GOOGLE_API_KEY`. Key validated live
+(HTTP 200, strict-JSON resume review) on 2026-07-16.
+
+## Step 0 — Root causes (traced in code before fixing)
+
+**Flow architecture reality:** there is NO `/upload` route. Landing, the upload screen, the
+profile-review screen and the dashboard are all internal states of the single `app/page.js`
+(`App` component). State machine: `appState` = `landing` | `app`; within `app`,
+`findState` = `upload` | `parsing` | `review` | `matching` | `results`. Resume Lab is the
+separate routes `/review` and `/compare`; Skill World is `/world`.
+
+- **W-1 (nav shows on upload screen).** `app/page.js:5214` `<AppNavbar>` and `:5461`
+  `<MobileBottomBar>` render unconditionally whenever `appState==="app"` and `user` exists.
+  But the auth effect sets `appState="app"` even with NO profile (`:4944`), so the upload
+  screen (`findState==="upload"`) and the profile-review screen (`findState==="review"`) both
+  show the nav. No profile/loading gate exists.
+- **W-2 (Skill World tab).** Defined in three nav arrays: `app/page.js:378` (AppNavbar tabs),
+  `components/MobileBottomBar.js:12`, and `components/pixel/Hotbar.jsx:12` (Hotbar is dead —
+  only imported by the unrendered `components/ModernDashboardLayout.jsx`). Click routing at
+  `app/page.js:415-416`; avatar-menu guide copy at `:465` mentions Skill World; tour step at
+  `components/pixel/Tour.jsx:14` (`who:"bo"`, "Skill World"). `GuideStrip.jsx` has no world refs.
+- **W-4 (back → upload).** `/review`, `/compare`, `/world` all use `<Link href="/">← Back</Link>`.
+  On `/` re-mount `appState` defaults to `"landing"` (one-frame flash) then the auth effect
+  (`app/page.js:4932`) restores: `if (cachedProfile && cachedJobs.length>0) → results` ELSE
+  `setProfile(null); findState="upload"`. **Root cause: the else branch discards a valid
+  `cachedProfile` whenever jobs are not cached, bouncing an authed user WITH a profile back to
+  the upload screen.** The guard reads the right durable source (`getUserJSON(uid,"profile")`)
+  but throws it away on the jobs-empty path.
+- **W-5 (popup re-appears).** The tour seen-flag is the GLOBAL key `cv_tour_v1`
+  (`app/page.js:4870` auto-shows on mount when `!== "done"`; `Tour.jsx:24` writes `"done"`
+  ONLY on close). Consequences: (a) not user-scoped, so a different new account on the same
+  browser never sees it; (b) if the user refreshes/navigates before closing, the flag is never
+  written, so it re-appears. `Tour.jsx`'s own first-run effect is dead because the parent
+  passes an `open` prop (`openProp !== undefined` short-circuit at `Tour.jsx:30`). Tour content
+  still lists Skill World and omits Career Path.
+- **W-3 (Resume Lab reviewer).** `/review` h1 = "The Anvil" (`review:150`), loader copy "The
+  anvil is heating up…" (`:209`); `/compare` h1 = "The Crafting Table" (`compare:184`), button
+  "Crafting…" (`:210`). `readFile` (`review:85`) accepts only txt/md/csv/text — PDF/DOCX show a
+  toast telling the user to go to Home; it does NOT reuse the landing parse path
+  (`/api/parse-resume`, used at `app/page.js:5032`). Gemini wiring is already correct:
+  `/api/chat`, 2-attempt loop (`review:116`), `extractJson`, labeled `aiUnavailable` fallback.
+  Available original characters (`PixelCharacter.jsx`): pip, bo, lumi, byte, ren, fox, bird.
+
+## Workflow fixes — status table
+
+| ID | Problem | Root cause | Files | Status |
+|----|---------|-----------|-------|--------|
+| W-1 | Nav visible on upload/review screens | AppNavbar + MobileBottomBar render unconditionally in appState==="app" | app/page.js | pending |
+| W-2 | Skill World tab in nav + onboarding | tab in 3 arrays + tour step + guide copy | app/page.js, MobileBottomBar.js, Hotbar.jsx, Tour.jsx | pending |
+| W-4 | Back from Resume Lab → upload | profile-load else branch discards cachedProfile when jobs empty | app/page.js | pending |
+| W-5 | Steps popup re-appears | global cv_tour_v1, written only on close, not user-scoped | app/page.js, Tour.jsx, userStorage.js | pending |
+| W-3 | Anvil/Crafting jargon; review tab no PDF | legacy persona names; readFile rejects PDF/DOCX | review/page.js, compare/page.js | pending |
