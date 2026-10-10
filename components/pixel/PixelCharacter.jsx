@@ -60,8 +60,11 @@ function Figure({ name, pose }) {
   const isCheer = pose === "cheer";
   const isOops = pose === "oops";
 
-  // Common pixel rects helper
-  const R = (x, y, w, h, fill) => <rect key={`${x}-${y}`} x={x} y={y} width={w} height={h} fill={fill} shapeRendering="crispEdges" />;
+  // Common pixel rects helper. Key includes a per-figure counter because several
+  // rects intentionally share the same x,y (e.g. head + hat), which would
+  // otherwise collide and trigger React duplicate-key warnings.
+  let _rk = 0;
+  const R = (x, y, w, h, fill) => <rect key={`${x}-${y}-${_rk++}`} x={x} y={y} width={w} height={h} fill={fill} shapeRendering="crispEdges" />;
 
   // Faces - simple eyes
   const eyes = isOops

@@ -330,11 +330,32 @@ available, so the live `/api/chat` path was exercised only through the injected 
 
 ---
 
-## Terminology table (Part 7.2 — fill during audit)
+## Terminology table (Part 7.2 — final, post W-1..W-5)
+
+Canonical user-facing names after the workflow hotfix pass. Verified live in source
+(`grep` over `app/` + `components/`) on 2026-10-10. No persona/character names are
+exposed in nav or page headings; the blocky characters are decorative only.
 
 | Concept | Canonical term | Capitalization | Banned variants |
 |---------|----------------|----------------|-----------------|
-| (to be completed in Part 7) | | | |
+| Nav tab — job search | Find Jobs | Title Case | "Jobs", "Search", "Job Board", "Find a Job" |
+| Nav tab — pipeline | My Jobs | Title Case | "Saved", "Applications", "My Applications", "Pipeline" |
+| Nav tab — growth plan | Career Path | Title Case | "Career", "Path", "Skill Path", "Career Map" |
+| Nav tab — resume tools | Resume Lab | Title Case | "Resume", "Lab", "Tools", "Resume Tools" |
+| `/review` page heading | Resume Reviewer | Title Case | "The Anvil", "Anvil", "Resume Review", "Reviewer" |
+| `/compare` page heading | Resume Comparison | Title Case | "The Crafting Table", "Crafting Table", "Compare Resumes", "Resume Compare" |
+| Onboarding overlay | product tour (internal); no user label | — | "Skill World tour", persona-named steps |
+| Removed surface | Skill World — nav entry dropped (W-2); `/world` route + `worldPlan` runtime intentionally kept | — | any nav/tab/menu link to "Skill World" |
+
+Notes:
+- Nav is exactly four items on desktop (`app/page.js` NAV) and mobile
+  (`components/MobileBottomBar.js`): Find Jobs / My Jobs / Career Path / Resume Lab.
+  The two lists must stay in sync; the dead `components/pixel/Hotbar.jsx` was also
+  reduced to four slots for grep-consistency even though it is not rendered.
+- Character names (pip, bo, lumi, byte, ren, fox, bird) live only in
+  `components/pixel/PixelCharacter.jsx` and the tour narration; they never appear as
+  nav labels or page headings. `McFace` was removed from `/review` and `/compare`
+  (W-3) in favour of `PixelCharacter`.
 
 ## Competitor comparison (Part 9 — evidence only)
 
