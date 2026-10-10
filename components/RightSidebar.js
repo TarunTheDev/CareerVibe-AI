@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { parseDaysAgo } from "./FreshnessSystem";
+import { parseSalaryRange, formatSalary, salaryLabel } from "@/lib/salary.mjs";
 
 // ─── Skill normalizer ─────────────────────────────────────────────────────────
 const norm = (s) =>
@@ -23,19 +24,11 @@ const norm = (s) =>
     .replace(/[^a-z0-9+#]+/g, " ")
     .trim();
 
-// ─── Format salary (e.g. 85000 -> "$85k") ───────────────────────────────────
-const trimNumber = (n) => Number(n.toFixed(1)).toString();
-
-const fmtSalary = (n, isIndian = false) => {
-  if (typeof n === "string") return n;
-  if (!n || n <= 0) return isIndian ? "₹0L" : "$0";
-  if (isIndian) {
-    const lakhs = n >= 100000 ? n / 100000 : n;
-    return `₹${trimNumber(lakhs)}L`;
-  }
-  if (n >= 1000) return `$${Math.round(n / 1000)}k`;
-  return `$${n}`;
-};
+// ─── Salary formatting ────────────────────────────────────────────────────────
+// All money rendering goes through lib/salary.mjs (parseSalaryRange + formatSalary)
+// so periods are normalized before display. The old local fmtSalary divided by
+// 100000 only above 1 lakh, which rendered a monthly ₹21000 as "₹21000L" and
+// mixed monthly/annual bounds in one range ("₹21000L – ₹96L per annum").
 
 // ─── Indian city/region detector ─────────────────────────────────────────────
 const INDIAN_HINTS = [
@@ -479,17 +472,35 @@ export default function RightSidebar({
   // ── Computed: salary stats ────────────────────────────────────────────────
   const salaryData = useMemo(() => {
     const isIndian = detectIsIndian(jobs);
-    const salaryJobs = jobs.map(extractJobSalary).filter(Boolean);
+    const currency = isIndian ? "INR" : "USD";
 
-    if (salaryJobs.length) {
-      const mins = salaryJobs.map((item) => item.min).filter(Boolean);
-      const maxs = salaryJobs.map((item) => item.max).filter(Boolean);
+    // Normalize EVERY job's salary to annual before aggregating, so the range
+    // can never mix a monthly figure with an annual one.
+    const parsedJobs = jobs
+      .map((job) =>
+        parseSalaryRange(
+          { min: job.salaryMin, max: job.salaryMax, salary: job.salary, compensation: job.compensation },
+          { currency },
+        ),
+      )
+      .filter((p) => p.hasSalary);
+
+    if (parsedJobs.length) {
+      const mins = parsedJobs.map((p) => p.minAnnual).filter((v) => v != null);
+      const maxs = parsedJobs.map((p) => p.maxAnnual).filter((v) => v != null);
       const allVals = [...mins, ...maxs].sort((a, b) => a - b);
+      const minAnnual = Math.min(...mins);
+      const maxAnnual = Math.max(...maxs);
+      const medianAnnual = allVals[Math.floor(allVals.length / 2)];
       return {
-        min: Math.min(...mins),
-        max: Math.max(...maxs),
-        median: allVals[Math.floor(allVals.length / 2)],
-        isIndian,
+        minAnnual,
+        maxAnnual,
+        medianAnnual,
+        currency,
+        rangeLabel: formatSalary({ minAnnual, maxAnnual, currency, hasSalary: true }),
+        medianLabel: formatSalary({ minAnnual: medianAnnual, maxAnnual: medianAnnual, currency, hasSalary: true }),
+        // "estimated" whenever any bound came from the monthly heuristic, not source metadata
+        estimated: parsedJobs.some((p) => p.confidence === "estimated"),
         isEstimate: false,
         context: "based on salary data in current results",
       };
@@ -509,7 +520,12 @@ export default function RightSidebar({
 
     return {
       ...estimate,
-      isIndian,
+      currency,
+      // The fallback table already stores display strings ("₹3L"); pass them through.
+      rangeLabel: `${estimate.min} – ${estimate.max}`,
+      medianLabel: estimate.median || "",
+      estimated: true,
+      isEstimate: true,
       context: `estimated for ${domainLabel} ${levelLabel} roles`,
     };
   }, [jobs, profile]);
@@ -986,9 +1002,11 @@ export default function RightSidebar({
                     }}
                   >
                     <DollarSign size={11} />
-                    {hoveredJob.salaryMin && hoveredJob.salaryMax
-                      ? `${fmtSalary(hoveredJob.salaryMin)} – ${fmtSalary(hoveredJob.salaryMax)}`
-                      : fmtSalary(hoveredJob.salaryMin || hoveredJob.salaryMax)}
+                    {salaryLabel({
+                      min: hoveredJob.salaryMin,
+                      max: hoveredJob.salaryMax,
+                      salary: hoveredJob.salary,
+                    })}
                   </span>
                 )}
                 {hoveredJob.posted && (
@@ -1269,6 +1287,7 @@ export default function RightSidebar({
             <div>
               {/* Salary range — solid retro ink, no gradient */}
               <div
+                title={salaryData.estimated ? "estimated from monthly figure" : undefined}
                 style={{
                   color: isDark ? "#3ED9A8" : "#1F9E75",
                   fontSize: 18,
@@ -1278,13 +1297,12 @@ export default function RightSidebar({
                   marginBottom: 3,
                 }}
               >
-                {fmtSalary(salaryData.min, salaryData.isIndian)} –{" "}
-                {fmtSalary(salaryData.max, salaryData.isIndian)} per annum
+                {salaryData.rangeLabel}
               </div>
               <div style={{ fontSize: 11, color: T.text3, marginBottom: 12 }}>
                 {salaryData.isEstimate
                   ? `(${salaryData.context})`
-                  : `median: ${fmtSalary(salaryData.median, salaryData.isIndian)}`}
+                  : `median: ${salaryData.medianLabel}`}
               </div>
               <div
                 style={{
@@ -1351,9 +1369,9 @@ export default function RightSidebar({
                         }}
                       >
                         {highestPayingSalary
-                          ? `up to ${fmtSalary(
-                              highestPayingSalary.max,
-                              salaryData.isIndian,
+                          ? `up to ${salaryLabel(
+                              { max: highestPayingSalary.max },
+                              { currency: salaryData.currency },
                             )}`
                           : `${highestPayingJob.matchScore || 0}% match`}
                       </div>

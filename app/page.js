@@ -10,6 +10,7 @@ import RightSidebar from "@/components/RightSidebar";
 import MobileBottomBar from "@/components/MobileBottomBar";
 import CareerChangePaths from "@/components/CareerChangePaths";
 import { parseDaysAgo, getFreshness } from "@/components/FreshnessSystem";
+import { salaryLabel } from "@/lib/salary.mjs";
 import ModernDashboardLayout from "@/components/ModernDashboardLayout";
 import {
   Briefcase,
@@ -1757,7 +1758,7 @@ function JobCard({
                 <Globe size={11} />
                 {job.workType}
               </span>
-              {(job.salaryMin > 0 || job.salaryMax > 0) && (
+              {(job.salaryMin > 0 || job.salaryMax > 0 || job.salary) && (
                 <span
                   style={{
                     display: "flex",
@@ -1766,9 +1767,7 @@ function JobCard({
                   }}
                 >
                   <DollarSign size={11} />
-                  {job.salaryMin > 0 ? job.salaryMin.toLocaleString() : ""}
-                  {job.salaryMin > 0 && job.salaryMax > 0 ? "–" : ""}
-                  {job.salaryMax > 0 ? job.salaryMax.toLocaleString() : "+"}
+                  {salaryLabel(job)}
                 </span>
               )}
             </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatSalary, parseSalaryRange } from "@/lib/salary.mjs";
 import {
   GraduationCap,
   Upload,
@@ -372,7 +373,7 @@ export default function CareerChangePaths({ T, isDark, profile, onGoUpload }) {
                   {gapAnalysis.salaryRange && (
                     <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
                       <DollarSign size={13} color={T.text3} /> 
-                      Est. ${gapAnalysis.salaryRange.min?.toLocaleString()} – ${gapAnalysis.salaryRange.max?.toLocaleString()}
+                      Est. {formatSalary(parseSalaryRange(gapAnalysis.salaryRange, { currency: "USD", period: "annual" }))}
                     </span>
                   )}
                 </div>
