@@ -11,6 +11,8 @@ import MobileBottomBar from "@/components/MobileBottomBar";
 import CareerChangePaths from "@/components/CareerChangePaths";
 import { parseDaysAgo, getFreshness } from "@/components/FreshnessSystem";
 import { salaryLabel } from "@/lib/salary.mjs";
+import { canonicalSkill, matchFor } from "@/lib/skills/normalize.mjs";
+import { isSuspicious, realityScore } from "@/lib/realityScore.mjs";
 import ModernDashboardLayout from "@/components/ModernDashboardLayout";
 import {
   Briefcase,
@@ -151,21 +153,14 @@ const stripJobHtml = (value = "") =>
     .replace(/\s+/g, " ")
     .trim();
 
-const skillKey = (skill = "") =>
-  String(skill)
-    .toLowerCase()
-    .replace(/\.js/g, "js")
-    .replace(/[^a-z0-9+#]+/g, " ")
-    .trim();
-
 const uniqueSkills = (items = [], limit = 16) => {
   const seen = new Set();
   const out = [];
   for (const item of items) {
     const value = String(item || "").trim();
     if (!value) continue;
-    const key = skillKey(value);
-    if (seen.has(key)) continue;
+    const key = canonicalSkill(value);
+    if (!key || seen.has(key)) continue;
     seen.add(key);
     out.push(value);
     if (out.length >= limit) break;
@@ -193,30 +188,18 @@ const deriveSkillData = (job, profile) => {
     ],
     16,
   );
-  const candidateKeys = new Set(
-    (profile?.topSkills || []).flatMap((skill) => {
-      const key = skillKey(skill);
-      if (key === "html css") return ["html css", "html", "css"];
-      if (key === "ai ml") return ["ai ml", "ai", "machine learning"];
-      return [key];
-    }),
-  );
+  // ONE shared matcher (lib/skills/normalize.mjs): canonicalizes both sides, so
+  // "SQL" counts for a "MySQL" ask and "HTML/CSS" covers both HTML and CSS, and
+  // the chips below can never disagree with the match count they display.
+  const { matched, missing } = matchFor(profile?.topSkills || [], requiredSkills);
+  const matchedSet = new Set(matched);
+  const missingSet = new Set(missing);
   const matchedSkills = uniqueSkills(
-    requiredSkills.filter((skill) => {
-      const key = skillKey(skill);
-      return (
-        candidateKeys.has(key) ||
-        (key === "html" && candidateKeys.has("html css")) ||
-        (key === "css" && candidateKeys.has("html css")) ||
-        (key === "ai" && candidateKeys.has("ai ml")) ||
-        (key === "machine learning" && candidateKeys.has("ai ml"))
-      );
-    }),
+    requiredSkills.filter((s) => matchedSet.has(canonicalSkill(s))),
     10,
   );
-  const matchedKeys = new Set(matchedSkills.map(skillKey));
   const missingSkills = uniqueSkills(
-    requiredSkills.filter((skill) => !matchedKeys.has(skillKey(skill))),
+    requiredSkills.filter((s) => missingSet.has(canonicalSkill(s))),
     8,
   );
   return { requiredSkills, matchedSkills, missingSkills };
@@ -1560,32 +1543,32 @@ function JobCard({
   const { daysAgo, freshnessClass, freshnessLabel, freshnessTooltip } =
     getFreshness(job.posted);
 
-  // "Why this matches" data — also expose lists for the inline badges
+  // "Why this matches" data — also expose lists for the inline badges.
+  // Sourced from the shared deriveSkillData()/matchFor() so the count and the
+  // chips below can never disagree with each other or with the drawer/modal.
   const skillData = profile
     ? (() => {
-        const norm = (s) =>
-          s
-            .toLowerCase()
-            .replace(/\.js/g, "js")
-            .replace(/[^a-z0-9+#]+/g, " ")
-            .trim();
-        const candidateKeys = new Set((profile.topSkills || []).map(norm));
-        const jobSkills = [
-          ...new Set([...(job.requiredSkills || []), ...(job.tags || [])]),
-        ];
-        const matchedList = jobSkills.filter((s) => candidateKeys.has(norm(s)));
-        const missingList = jobSkills.filter(
-          (s) => !candidateKeys.has(norm(s)),
-        );
+        const d = deriveSkillData(job, profile);
         return {
-          matched: matchedList.length,
-          total: jobSkills.length,
-          gaps: missingList.length,
-          matchedList,
-          missingList,
+          matched: d.matchedSkills.length,
+          total: d.requiredSkills.length,
+          gaps: d.missingSkills.length,
+          matchedList: d.matchedSkills,
+          missingList: d.missingSkills,
         };
       })()
     : null;
+
+  // Reality Score — pure, client-side trust signal from visible job data only.
+  const reality = realityScore(job);
+  const realityColor =
+    reality.level === "verified"
+      ? "#2f9e44"
+      : reality.level === "good"
+        ? "#4a6741"
+        : reality.level === "caution"
+          ? "#b8860b"
+          : "#c0392b";
 
   const reportEntry = reportedJobs?.[job.id] || null;
   const isReported = !!reportEntry;
@@ -1919,6 +1902,28 @@ function JobCard({
               title={freshnessTooltip}
             >
               {freshnessLabel}
+            </span>
+            {/* Reality Score shield */}
+            <span
+              className="reality-badge"
+              title={`Reality Score ${reality.score}/100 (${reality.level})\n\n${reality.reasons.join("\n")}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+                padding: "0.125rem 0.5rem",
+                borderRadius: 6,
+                fontSize: "0.625rem",
+                fontWeight: 700,
+                fontFamily: "'Space Mono', monospace",
+                letterSpacing: "0.02em",
+                border: `1.5px solid ${realityColor}`,
+                color: realityColor,
+                background: `${realityColor}14`,
+                textTransform: "capitalize",
+              }}
+            >
+              {reality.level} · {reality.score}
             </span>
           </div>
 
@@ -2563,6 +2568,21 @@ function ResultsView({
   });
   const [sortBy, setSortBy] = useState("matchScore");
 
+  // Reality Score filter — "Hide suspicious listings" (default ON).
+  // Persisted in the global key cv_reality_v1 ("1"/"0"). Scoring is pure and
+  // client-side (lib/realityScore.mjs): every hidden listing is justified by
+  // visible signals, never an invented statistic.
+  const [hideSuspicious, setHideSuspicious] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const raw = window.localStorage.getItem("cv_reality_v1");
+    return raw === null ? true : raw === "1";
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("cv_reality_v1", hideSuspicious ? "1" : "0");
+    } catch {}
+  }, [hideSuspicious]);
+
   // Skills panel state
   const [skillsPanelOpen, setSkillsPanelOpen] = useState(true);
   const [newSkillInput, setNewSkillInput] = useState("");
@@ -2692,6 +2712,8 @@ function ResultsView({
       if (reportEntry && reportEntry.count >= 2) return false;
       // Freshness gate: hide jobs > 60 days unless showOlderJobs
       if (!showOlderJobs && parseDaysAgo(j.posted) > 60) return false;
+      // Reality Score gate: hide low-trust listings when the toggle is on
+      if (hideSuspicious && isSuspicious(j)) return false;
       return true;
     })
     .sort((a, b) => {
@@ -3091,6 +3113,28 @@ function ResultsView({
           <option value="matchScore">Best Match</option>
           <option value="salary">Highest Salary</option>
         </select>
+        <button
+          onClick={() => setHideSuspicious((v) => !v)}
+          title="Hide listings with a low Reality Score (thin details, red-flag wording, or stale/unknown source). Score is computed from visible job data only."
+          aria-pressed={hideSuspicious}
+          style={{
+            padding: "6px 12px",
+            borderRadius: 9,
+            border: `1.5px solid ${T.ink}`,
+            background: hideSuspicious ? T.gold : T.bg3,
+            color: hideSuspicious ? "#17150F" : T.text2,
+            fontSize: 12,
+            cursor: "pointer",
+            fontWeight: 700,
+            fontFamily: "'Space Grotesk', sans-serif",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+            boxShadow: hideSuspicious ? `1.5px 1.5px 0 ${T.ink}` : "none",
+            transition: "background 0.14s, box-shadow 0.14s",
+          }}
+        >
+          Hide suspicious: {hideSuspicious ? "On" : "Off"}
+        </button>
       </div>
 
       {displayed.length === 0 ? (
@@ -4355,7 +4399,7 @@ function JobModal({ job, isDark, T, saved, onSave, onClose, profile }) {
                 >
                   {skillData.requiredSkills.map((s) => {
                     const matched = skillData.matchedSkills.some(
-                      (skill) => skillKey(skill) === skillKey(s),
+                      (skill) => canonicalSkill(skill) === canonicalSkill(s),
                     );
                     return (
                       <span

@@ -61,7 +61,8 @@ because no browser could be run.
 - [ ] **6. Courier + coach + bard agents; forge-kit mission end to end**
 - [ ] **7. Mission Control UI (nodes, tool chips, log, summary, speech bubbles)**
 - [ ] **8. Kit tab (diff, emails, quest, prep sheet, copy/download/print) + golden cache**
-- [ ] **9. Truth layer: normalization, shared matchFor, Reality Score + filter**
+- [x] **9. Truth layer: normalization, shared matchFor, Reality Score + filter** — see Finding T-1.
+      Logic **[RUN-VERIFIED]**; UI wiring **[CODE-REVIEW ONLY]**.
 - [ ] **10. Minecraft polish (XP bars, chest save, block toasts, loaders, empty states, torch)**
 - [ ] **11. Demo Mode + offline dataset + sample resumes + error boundary + /api/health**
 - [ ] **12. Full audit sweep (7.1–7.8) and P0/P1 fix loop**
@@ -80,6 +81,7 @@ misleading number. **P1** = serious usability / a11y / mobile breakage. **P2** =
 | P0-1 | RightSidebar "Salary Intelligence" (also job card, career path) | all | both | Salary showed "₹21000L – ₹96L per annum": a monthly figure labeled as lakhs, and the two bounds normalized on different scales. | `components/RightSidebar.js:29` old `fmtSalary`; render `:1281` | P0 | **FIXED [RUN-VERIFIED]** |
 | P0-2 | Dashboard (`.dashboard-center` scroll container) | 360–768 | both | Last job card / list footer / pipeline end covered by the fixed mobile hotbar. | `app/globals.css:1147`, `components/MobileBottomBar.js:21` | P0 | **FIXED [CODE-REVIEW ONLY]** |
 | P0-3 | Landing hero | all | both | Hero video barely visible — smothered by a full-screen cream/ink wash. | `components/landing-retro.css:395` `.rv-hero__scrim` | P0 | **FIXED [CODE-REVIEW ONLY]** |
+| T-1 | Job card + drawer + modal skill match; results filter | all | both | Match logic was duplicated 3× with divergent rules (`skillKey` vs inline `norm`, different "total" sources), so a card's chips could disagree with its own count; no alias canonicalization (SQL≠MySQL); no trust signal for scam/thin listings. | `app/page.js` old `deriveSkillData` + JobCard inline `norm` (~:1548) | P1 | **FIXED — logic [RUN-VERIFIED], UI [CODE-REVIEW ONLY]** |
 
 ### P0-1 — Salary Intelligence (detail)
 
@@ -186,6 +188,82 @@ fix is therefore **pending a real browser**.
 
 ---
 
+### T-1 — Truth layer: shared `matchFor`, canonical skills, Reality Score (detail)
+
+**Root cause (found):** the client computed skill match **three different ways** that could
+disagree with each other on the same card:
+1. `deriveSkillData(job, profile)` (module-level) built `requiredSkills` from
+   required+matched+missing+tags+inferred and matched against `profile.topSkills` via a local
+   `skillKey` (`s.toLowerCase().replace(/\.js/,"js")…`) with hand-written special cases for
+   "html css" / "ai ml".
+2. The live `JobCard` had its **own inline `norm`** (a near-copy of `skillKey`) and a
+   **different "total"** (`requiredSkills + tags` only), so its "matched of total" text and gap
+   chips could contradict the drawer/modal, which use `deriveSkillData`.
+3. Neither canonicalized aliases: **"SQL" did not count for a "MySQL" requirement**, and
+   `MySQL` + `PostgreSQL` + `SQLite` were counted as three separate required slots, deflating %.
+
+**Fix (one pure module + one pure scorer, both `.mjs`, both unit-tested):**
+- New `lib/skills/normalize.mjs`:
+  - `canonicalSkill(raw)` — case/punctuation-insensitive alias map (~120 aliases →
+    ~70 canonical families: SQL=MySQL=PostgreSQL=SQLite= MSSQL→`sql`; JS=ES6→`javascript`;
+    React.js=ReactJS→`react`; Node.js→`node js`; AWS=Amazon Web Services→`aws`; CSS3→`css`; …).
+    Unknown skills canonicalize to their cleaned form (still match themselves). **Idempotent**
+    (re-canonicalizing a canonical value is a no-op — asserted over every alias). `C++` preserved.
+  - `canonicalSet(list)` — canonical→first-display-form map (dedupes aliases, keeps phrasing).
+  - `haveSet(list)` — candidate side; expands combined tokens (`HTML/CSS`→ also `html`,`css`;
+    `AI/ML`→ also `ai`,`machine learning`) so one resume line satisfies several asks. Preserves
+    the old special-casing, now centralized + tested.
+  - **`matchFor(profileSkills, jobSkills)` — the ONE shared matcher.** Returns
+    `{matched, missing, required, pct}`; `required` is the deduped canonical count and
+    `pct = required===0 ? 0 : round(matched/required*100)`. A combined *requirement*
+    ("HTML/CSS") counts as one slot and is met by having both parts.
+- New `lib/realityScore.mjs` — **pure, client-side, zero-API** trust score from *visible* data
+  only (no invented statistics): freshness (`daysAgo` parses "Today"/"3 days ago"/ISO/…),
+  source tier (direct career site +30 / Internshala·Wellfound +25 / aggregator +15),
+  responsibilities present +15, salary +10, skills +10, **red-flag phrases −20 each**
+  ("registration fee", "earn daily", "whatsapp group", "instant joining", …), clamped 0–100.
+  `level` = verified≥80 / good≥60 / caution≥40 / danger. `isSuspicious(job)` = score < 40.
+  Every point becomes a human-readable `reason` (so the number is explainable, per the thesis).
+- **Wired into `app/page.js`:**
+  - `deriveSkillData` now calls `matchFor`; `uniqueSkills` dedupes by `canonicalSkill`; the
+    JobCard's inline `norm` block is **deleted** and replaced by `deriveSkillData` output, so
+    card text + chips + drawer + modal all come from one function. The modal chip-equality check
+    now uses `canonicalSkill` too. The old `skillKey` helper is removed.
+  - Results toolbar: **"Hide suspicious: On/Off"** toggle (default ON) filters `displayed` by
+    `!isSuspicious(job)`; persisted in the global key **`cv_reality_v1`** ("1"/"0"), registered
+    in `SAFE_GLOBAL_KEYS` so it survives the account-switch nuclear wipe.
+  - Job card: a **Reality Score shield** (`level · score`) colored by level, `title` tooltip
+    lists the reasons. The server-side holistic `job.matchScore` (AI blend + role/location
+    bonuses in `route.js`) is **left untouched** — no API/contract change.
+
+**Verification [RUN-VERIFIED] — `tests/truth.test.mjs`, 18 assertion groups, all pass in the
+Node runtime:**
+- Acceptance: `matchFor(['SQL'],['MySQL'])` → `{matched:['sql'],required:1,pct:100}`.
+- Alias family dedupe: `['sql']` vs `['MySQL','PostgreSQL','SQLite']` → `required:1, pct:100`.
+- **Every `pct` equals `round(matched/required*100)`** and `matched+missing === required`
+  across 4 mixed cases (the "card can't disagree with its own text" guarantee).
+- No-requirement → `pct:0`, never NaN/div-by-zero. `canonicalSkill` idempotent over all aliases.
+  `C++` preserved. Unknown skills self-match. `canonicalSet` dedupes to first display form.
+  Order-independent. `HTML/CSS` satisfies separate `HTML`+`CSS` (pct 100) and a combined
+  `HTML/CSS` ask is met by having both parts (1 slot).
+- `daysAgo`: Today/Just posted=0, Yesterday=1, "3 days ago"=3, "2 weeks ago"=14,
+  "1 month ago"=30, "5 hours ago"≈0.208, null/junk=null.
+- `realityScore`: a rich/fresh/direct listing → 90 `verified`; a red-flag scam → 0 `danger`,
+  `isSuspicious=true`; a thin aggregator listing → `danger`, suspicious. Score always clamped
+  0–100, `level` always derived from the score, and deterministic for identical input.
+
+**Bugs found & fixed while testing (both were real, both now covered by a test):**
+- Alias *values* were returned un-cleaned, so `CICD`→`ci/cd` but `CI/CD`→`ci cd` (they failed to
+  match). Fixed by re-cleaning alias values → canonical form is idempotent.
+- `daysAgo` unit regexes used `\b` right after the unit, so **plurals failed** ("3 days ago",
+  "5 hours ago" → null). Fixed to `(?:days?|d)\b` etc.
+
+**Status: [CODE-REVIEW ONLY, not visually verified]** — the toggle, the shield badge, and the
+re-filtered list were **not opened in a browser** (no browser/build here). The matching and
+scoring logic they render is run-verified.
+
+---
+
 ## Terminology table (Part 7.2 — fill during audit)
 
 | Concept | Canonical term | Capitalization | Banned variants |
@@ -205,7 +283,9 @@ fix is therefore **pending a real browser**.
 ## localStorage keys (inventory — Part 7.8)
 
 Global (not user-scoped): `cv_theme`, `cv_notifications`, `cv_tour_v1`, `cv_reported_jobs`,
-`cv_job_statuses`, `cv_preview_user` (dev only).
+`cv_job_statuses`, `cv_preview_user` (dev only). `cv_reality_v1` is now registered in
+`SAFE_GLOBAL_KEYS` (`lib/userStorage.js:12`) so the Reality-Score filter preference survives
+the account-switch nuclear wipe.
 User-scoped (`cv_<uid>_*` via `lib/userStorage.js`): `session`, `profile`, `jobs`, `saved`,
 `resume_filename`, `resume_text`, `career_path`, `analysis`, `skill_additions`, plus
 `applied` and `learning_plan` written by `app/page.js`.
