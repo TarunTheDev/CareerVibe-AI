@@ -348,19 +348,20 @@ available, so the live `/api/chat` path was exercised only through the injected 
 
 ## localStorage keys (inventory — Part 7.8)
 
-Global (not user-scoped): `cv_theme`, `cv_notifications`, `cv_tour_v1`, `cv_reported_jobs`,
+Global (not user-scoped): `cv_theme`, `cv_notifications`, `cv_reported_jobs`,
 `cv_job_statuses`, `cv_preview_user` (dev only). `cv_reality_v1` is now registered in
 `SAFE_GLOBAL_KEYS` (`lib/userStorage.js:12`) so the Reality-Score filter preference survives
-the account-switch nuclear wipe.
+the account-switch nuclear wipe. (`cv_tour_v1` was REMOVED in W-5 — the onboarding seen-flag is
+now the user-scoped `cv_<uid>_onboard_v1`.)
 User-scoped (`cv_<uid>_*` via `lib/userStorage.js`): `session`, `profile`, `jobs`, `saved`,
-`resume_filename`, `resume_text`, `career_path`, `analysis`, `skill_additions`, plus
-`applied` and `learning_plan` written by `app/page.js`.
+`resume_filename`, `resume_text`, `career_path`, `analysis`, `skill_additions`, `onboard_v1`
+(W-5), plus `applied` and `learning_plan` written by `app/page.js`.
 New keys this pass (mission-permitted): `cv_agent_v1`, `cv_compare_v1`, `cv_demo_v1`,
-`cv_reality_v1`.
+`cv_reality_v1`, `cv_<uid>_onboard_v1`.
 
-> **Known bug (data-leak):** `applied` and `learning_plan` are written under `cv_<uid>_*` but
-> are **not** in `USER_DATA_KEYS` (`lib/userStorage.js:15`), so `clearUserData()` ("Clear my
-> data") never removes them. Tracked as P1 (Part 7.8). Not yet fixed.
+> **Fixed (W-5, was P1 data-leak):** `applied`, `learning_plan` and the new `onboard_v1` are now
+> in `USER_DATA_KEYS` (`lib/userStorage.js:15`), so `clearUserData()` ("Clear my data") removes
+> them and the wipe returns to a genuine first-run state.
 
 ## Needs-my-decision list (surfaced at the end per the mission)
 - Team name / attribution line in README.
@@ -426,7 +427,7 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
 | W-1 | Nav visible on upload/review screens | AppNavbar + MobileBottomBar render unconditionally in appState==="app" | app/page.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
 | W-2 | Skill World tab in nav + onboarding | tab in 3 arrays + tour step + guide copy | app/page.js, MobileBottomBar.js, Hotbar.jsx, Tour.jsx | **FIXED [CODE-REVIEW + grep-proof + all routes compile 200]** |
 | W-4 | Back from Resume Lab → upload | profile-load else branch discards cachedProfile when jobs empty | app/page.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
-| W-5 | Steps popup re-appears | global cv_tour_v1, written only on close, not user-scoped | app/page.js, Tour.jsx, userStorage.js | pending |
+| W-5 | Steps popup re-appears | global cv_tour_v1, written only on close, not user-scoped | app/page.js, Tour.jsx, userStorage.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
 | W-3 | Anvil/Crafting jargon; review tab no PDF | legacy persona names; readFile rejects PDF/DOCX | review/page.js, compare/page.js | pending |
 
 ## USER VERIFICATION blocks
@@ -502,3 +503,37 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
   6. A user with NO profile who opens `/review` and clicks Back still ends up on upload.
 - **Status:** compiles clean (HTTP 200). Logic is code-review verified; the click-path above
   (needs real auth + cached-profile states) is the browser confirmation only the user can run.
+
+### W-5 — steps popup exactly once per user
+- **Root cause (confirmed):** the seen-flag was the GLOBAL key `cv_tour_v1`, auto-show checked
+  on mount (`app/page.js`) and written to `"done"` ONLY in `Tour.jsx`'s `close()`. So (a) it was
+  not user-scoped — a different new account on the same browser never saw it; (b) if the user
+  refreshed or navigated before closing, the flag was never written, so it re-appeared.
+- **Change:**
+  1. Replaced the global mount effect with a user-scoped one keyed on
+     `[user, appState, bootstrapped, sessionId]`. It fires only when `appState==="app"`, reads
+     `getUserItem(uid,"onboard_v1")`, and **writes the flag the moment it decides to show**
+     (before `setTourOpen(true)`), so a mid-way close/refresh/back-nav never re-triggers.
+  2. `sessionId` is a dependency so "Clear my data" (which mints a new session and wipes the
+     flag) correctly allows the one-shot popup for the fresh state.
+  3. Removed all `cv_tour_v1` reads/writes from `Tour.jsx` (close no longer persists; the dead
+     uncontrolled first-run effect is gone). `grep -rn cv_tour_v1 app components lib` → 0 hits.
+  4. Registered `onboard_v1` in `USER_DATA_KEYS` (`lib/userStorage.js`) so "Clear my data"
+     removes `cv_<uid>_onboard_v1`. Also added the previously-leaking `applied` and
+     `learning_plan` keys to the same list (fixes the AUDIT P1 data-leak so the wipe returns to
+     a genuine first-run state).
+  5. "Replay tour" (account menu → `onReplayTour` → `setTourOpen(true)`) bypasses the flag and
+     still works. Tour content already matches the new 4-item nav (W-2).
+- **Key:** user-scoped `cv_<uid>_onboard_v1` (the mission's "cv_onboard_v1" logical name,
+  namespaced per the existing `userKey()` convention). No existing key changed.
+- **Files:** `app/page.js`, `components/pixel/Tour.jsx`, `lib/userStorage.js`.
+- **How to verify (browser):**
+  1. Fresh account (or Clear my data): the popup appears ONCE on first reaching the app screen.
+  2. Dismiss it (Skip / Escape / Start exploring). Refresh, navigate away and back, re-login on
+     the same account, revisit the upload screen: it NEVER re-appears.
+  3. Sign out, sign in as a DIFFERENT new account: that account sees it once.
+  4. Account menu → Replay tour: shows on demand.
+  5. Account menu → Clear my data: back to first-run; the popup will show once for this fresh
+     state; applied/learning-plan data is also gone.
+- **Status:** compiles clean (HTTP 200); `cv_tour_v1` grep is 0. Logic code-review verified; the
+  multi-account/clear-data click-path is the browser confirmation only the user can run.

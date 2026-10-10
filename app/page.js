@@ -4867,10 +4867,23 @@ export default function App() {
     if (saved === "light") setIsDark(false);
   }, []);
 
-  // First-run product tour (once per browser; replayable from the account menu).
+  // W-5: first-run onboarding popup — EXACTLY ONCE per user (user-scoped).
+  // The seen-flag (cv_<uid>_onboard_v1) is written the MOMENT we decide to show,
+  // so a mid-way close, refresh, back-nav, route change or re-login never
+  // re-triggers it. "Replay tour" in the account menu bypasses this on purpose.
+  // sessionId is a dependency so "Clear my data" (which mints a new session and
+  // wipes the flag) correctly allows the one-shot popup for the fresh state.
   useEffect(() => {
-    try { if (localStorage.getItem("cv_tour_v1") !== "done") setTourOpen(true); } catch {}
-  }, []);
+    const uid = user?.uid;
+    if (!uid || appState !== "app") return;
+    try {
+      if (getUserItem(uid, "onboard_v1") === "1") return;
+      setUserItem(uid, "onboard_v1", "1");
+    } catch {
+      return;
+    }
+    setTourOpen(true);
+  }, [user, appState, bootstrapped, sessionId]);
 
   // ══════════════════════════════════════════════════════════════════════════
   // Fix 2 + 4 + 6:  Master auth-state handler

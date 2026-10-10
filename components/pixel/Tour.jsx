@@ -5,8 +5,9 @@ import PixelCharacter from "@/components/pixel/PixelCharacter";
 import { BlockButton, MC } from "@/components/pixel/ui.jsx";
 
 // Lightweight, keyboard-accessible product tour. 4 steps, skippable, replayable.
-// First-run auto-shows; dismissal persisted under cv_tour_v1. Uses a centered
-// dialog (not positioned coach marks) so it never mis-anchors on the monolith.
+// First-run auto-show is owned by the parent (user-scoped cv_<uid>_onboard_v1,
+// W-5). Uses a centered dialog (not positioned coach marks) so it never
+// mis-anchors on the monolith.
 const STEPS = [
   { who: "pip", title: "Find Jobs", body: "Upload your resume and CareerVibe matches you to real roles, showing exactly which skills line up." },
   { who: "ren", title: "My Jobs", body: "Saved, Applied, Interview and Offer all live here as tabs — your whole pipeline in one place." },
@@ -19,17 +20,12 @@ export default function Tour({ open: openProp, onClose }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = openProp ?? internalOpen;
 
+  // Persistence of the "seen" flag is owned by the parent (user-scoped
+  // cv_<uid>_onboard_v1, written the moment the popup is shown — see W-5).
   const close = useCallback(() => {
     setInternalOpen(false);
-    try { localStorage.setItem("cv_tour_v1", "done"); } catch {}
     onClose?.();
   }, [onClose]);
-
-  // First-run: show once per browser unless already dismissed.
-  useEffect(() => {
-    if (openProp !== undefined) return; // controlled by parent
-    try { if (localStorage.getItem("cv_tour_v1") !== "done") setInternalOpen(true); } catch {}
-  }, [openProp]);
 
   useEffect(() => {
     if (!open) return;
