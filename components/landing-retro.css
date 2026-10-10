@@ -393,15 +393,17 @@
   object-position: center 45%;
 }
 .rv-hero__scrim {
-  /* EDGE-ONLY vignette. The video itself stays at full opacity and is clearly
-     visible across the whole hero; text legibility is handled by the localized
-     panel on .rv-hero-inner (below), NOT by washing out the entire clip. */
+  /* Cinematic, center-weighted scrim. It darkens ONLY the band behind the hero
+     copy so the headline floats on the video, while the clip stays clearly
+     visible toward the top and edges. No box, no full-screen wash. */
   background:
-    radial-gradient(125% 95% at 50% 48%, transparent 52%, rgba(0,0,0,0.22) 88%, rgba(0,0,0,0.34) 100%);
+    radial-gradient(92% 66% at 50% 44%, rgba(9,8,6,0.55) 0%, rgba(9,8,6,0.38) 38%, rgba(9,8,6,0.14) 66%, rgba(9,8,6,0) 100%),
+    linear-gradient(180deg, rgba(9,8,6,0.30) 0%, rgba(9,8,6,0) 20%, rgba(9,8,6,0) 62%, rgba(9,8,6,0.42) 100%);
 }
 .rv-root[data-theme="dark"] .rv-hero__scrim {
   background:
-    radial-gradient(125% 95% at 50% 48%, transparent 50%, rgba(0,0,0,0.30) 88%, rgba(0,0,0,0.44) 100%);
+    radial-gradient(92% 66% at 50% 44%, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.16) 66%, rgba(0,0,0,0) 100%),
+    linear-gradient(180deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.46) 100%);
 }
 .rv-hero .rv-hero-inner { position: relative; z-index: 1; }
 .rv-hero .rv-sticker { z-index: 1; }
@@ -411,21 +413,20 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  /* LOCALIZED parchment panel behind the headline + buttons only. Chunky retro
-     bevel so the video reads clearly around and behind the text in light theme. */
-  max-width: min(780px, 92vw);
+  /* No panel: the hero copy sits directly on the video and syncs with it.
+     Legibility comes from the soft scrim above + text-shadow below. */
+  max-width: min(820px, 92vw);
   margin: 0 auto;
   padding: 2.75rem 2rem 2.25rem;
-  background: rgba(247, 238, 216, 0.94);
-  border: var(--rv-bw) solid var(--rv-line);
-  border-radius: 18px;
-  box-shadow: 6px 6px 0 var(--rv-shadow);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 .rv-root[data-theme="dark"] .rv-hero-inner {
-  /* Ink panel for dark theme — same localized treatment, AA contrast on text. */
-  background: rgba(24, 24, 24, 0.92);
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 @media (max-width: 480px) {
   .rv-hero-inner { padding: 2rem 1.15rem 1.75rem; }
@@ -453,14 +454,17 @@
   letter-spacing: -0.01em;
   margin: 0 0 1.5rem;
   max-width: 20ch;
+  color: #fff;
+  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 .rv-hero-title .rv-line { display: block; }
 .rv-hero-sub {
   font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
   line-height: 1.65;
-  color: var(--rv-ink-soft);
+  color: rgba(255, 255, 255, 0.92);
   max-width: 620px;
   margin: 0 0 2.25rem;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 .rv-hero-ctas {
   display: flex;
