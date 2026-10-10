@@ -428,7 +428,7 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
 | W-2 | Skill World tab in nav + onboarding | tab in 3 arrays + tour step + guide copy | app/page.js, MobileBottomBar.js, Hotbar.jsx, Tour.jsx | **FIXED [CODE-REVIEW + grep-proof + all routes compile 200]** |
 | W-4 | Back from Resume Lab → upload | profile-load else branch discards cachedProfile when jobs empty | app/page.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
 | W-5 | Steps popup re-appears | global cv_tour_v1, written only on close, not user-scoped | app/page.js, Tour.jsx, userStorage.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
-| W-3 | Anvil/Crafting jargon; review tab no PDF | legacy persona names; readFile rejects PDF/DOCX | review/page.js, compare/page.js | pending |
+| W-3 | Anvil/Crafting jargon; review tab no PDF | legacy persona names; readFile rejected PDF/DOCX | review/page.js, compare/page.js | **FIXED [RUN-VERIFIED: /review + /compare DOM, parse-resume contract, Gemini key]** |
 
 ## USER VERIFICATION blocks
 
@@ -537,3 +537,56 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
      state; applied/learning-plan data is also gone.
 - **Status:** compiles clean (HTTP 200); `cv_tour_v1` grep is 0. Logic code-review verified; the
   multi-account/clear-data click-path is the browser confirmation only the user can run.
+
+### W-3 — Resume Lab: production-grade reviewer
+- **3a Heading (RUN-VERIFIED live):** `/review` now opens with a single prominent pixel-font
+  `<h1>Resume Reviewer</h1>` plus the exact subline "Upload your resume and get an honest,
+  scored review with fixes you can act on today." The sticky-header title was demoted to a
+  `<div>` so there is exactly ONE h1. `/compare` matches in style: `<h1>Resume Comparison</h1>`
+  + subline, header title demoted. Browser DOM check: `/review` → `h1Text:"Resume Reviewer"`,
+  `h1Count:1`; `/compare` → `h1Text:"Resume Comparison"`, `h1Count:1`.
+- **3b PDF intake (RUN-VERIFIED contract):** the review tab's `readFile` now POSTs the file to
+  the SAME `/api/parse-resume` route the landing upload uses (no second parser) and consumes the
+  returned `resumeText`. That route already extracts PDF (pdf-parse), DOCX (mammoth) and TXT,
+  and rejects scanned/image-only files. Client-side guards added for: wrong type, >10 MB,
+  0-byte/empty, plus a mapped scanned-PDF message ("This looks like a scanned PDF — try a
+  text-based PDF or a DOCX/TXT file") and a generic parse-failure message. File chip shows
+  name + size + Remove + Replace; parsing / success (✓ Parsed) / error states are distinct and
+  visible; `accept=".pdf,.docx,.txt,.md,.csv,application/pdf,text/*"`; tap targets ≥44px.
+  - **PDF code-path trace [CODE-REVIEW ONLY for an actual binary PDF; TXT path RUN-VERIFIED]:**
+    user drops `resume.pdf` → `readFile` validates type/size/non-empty → `FormData.append("resume",
+    file)` → `POST /api/parse-resume` → `parseResume()` (route.js:3517) sees `.pdf` →
+    `pdf-parse(buffer).text` → if `<50` chars returns 400 "…not only an image scan" (mapped to the
+    scanned-PDF message) → else `normalizeResumeText` → returns `{ profile, parser, resumeText }`
+    → review sets `text = resumeText`, `parseState="success"`. Verified live with a TXT resume:
+    HTTP 200, `resumeText` length 483, `parser:"ai"`. The PDF branch is the same route the landing
+    upload already uses in production; not re-run against a binary PDF here (labelled code-review).
+- **3c Gemini wiring (RUN-VERIFIED):** the review request goes through the EXISTING `/api/chat`
+  route with strict-JSON + one retry (2-attempt loop) + a clearly-labeled fallback
+  (`aiUnavailable` → "AI feedback unavailable — showing automatic checks only", while the
+  deterministic `runResumeChecks` template review always renders). No spinner-forever, no crash,
+  no fake-AI. **Exact env var the route reads for the Gemini key: `GEMINI_API_KEY` (fallback
+  `GOOGLE_API_KEY`); model via `GEMINI_MODEL`.** `.env.local` is gitignored (`git check-ignore`
+  confirms). Key applied + validated live (HTTP 200 strict-JSON resume review) — see the Gemini
+  note at the top of this Workflow section. Never hardcoded in source.
+- **3d Anvil / legacy-name sweep (RUN-VERIFIED grep):** removed "The Anvil" (review h1), "The
+  anvil is heating up…" (loader → "Reviewing your resume…"), "The Crafting Table" (compare h1 →
+  "Resume Comparison") and "Crafting…" (compare button → "Comparing…"). Reviewer persona swapped
+  from the `McFace "mentor"` texture to the existing original character **Lumi** (Wizard) on
+  `/review` and **Byte** (Bot) on `/compare` (`PixelCharacter`), with plain copy ("Get your
+  resume reviewed — here's what stands out and what to fix"). `grep -rin "anvil|crafting|smelt|
+  the forge|craft table" app components` (excluding the `lib/agents` forgeKit runtime) → **0
+  user-facing hits**. No invented character names, no Minecraft-specific jargon.
+- **Files:** `app/review/page.js`, `app/compare/page.js`.
+- **How to verify (browser):**
+  1. Dashboard → Resume Lab: bold "Resume Reviewer" h1 + the subline; only one h1.
+  2. Drop a text-based PDF → chip shows name+size, "Parsing…" then "✓ Parsed", textarea fills,
+     automatic checks render. Click "Run full review" → scored AI review (Gemini when the key is
+     set; labeled fallback otherwise).
+  3. Try a scanned/image-only PDF → the exact scanned-PDF message. Try a >10 MB / 0-byte / .zip →
+     the matching inline error. Remove / Replace work.
+  4. Compare tab: "Resume Comparison" h1; "Crafting"/"Anvil" appear nowhere.
+  5. 375px + keyboard-only: upload control focusable, chip Remove reachable, tap targets ≥44px.
+- **Status:** RUN-VERIFIED for headings (live DOM), jargon sweep (grep 0), parse-resume contract
+  (live TXT → resumeText), and Gemini key (live 200). The binary-PDF drop and the full scored
+  review click-path are the browser confirmation only the user can run end-to-end.

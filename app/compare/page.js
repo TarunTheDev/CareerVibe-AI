@@ -5,7 +5,7 @@ import Link from "next/link";
 import { runResumeChecks, ACTION_VERBS } from "@/lib/resumeChecks.mjs";
 import { diffSkills, matchRequirements, lineDiff, normalizeSkill } from "@/lib/skillNormalize.mjs";
 import { BlockButton, BlockCard, QuoteBlock, AdvancementToast, MiningLoader, MC } from "@/components/pixel/ui.jsx";
-import { McFace } from "@/components/pixel/McCharacter";
+import PixelCharacter from "@/components/pixel/PixelCharacter";
 
 const SAMPLE_A = `Alex Rivera
 alex@example.com | 555-0100
@@ -179,15 +179,24 @@ export default function ComparePage() {
     <div data-theme={isDark ? "dark" : "light"} style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
       <header style={{ position: "sticky", top: 0, zIndex: 50, background: T.bg2, borderBottom: `3px solid ${T.ink}`, boxShadow: `0 3px 0 ${T.ink}`, display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem" }}>
         <Link href="/" style={{ color: T.text2, textDecoration: "none", fontSize: "0.85rem", fontWeight: 700 }}>← Back</Link>
-        <McFace id="engineer" size={30} style={{ border: `2px solid ${T.ink}`, borderRadius: 3 }} />
+        <span style={{ display: "inline-flex", border: `2px solid ${T.ink}`, borderRadius: 3, background: T.bg3, lineHeight: 0 }}>
+          <PixelCharacter name="byte" pose="wave" size={30} decorative />
+        </span>
         <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0, fontFamily: MC.display, fontSize: "0.9rem" }}>The Crafting Table</h1>
+          {/* Not an h1 — the single page h1 lives in <main> below (W-3a). */}
+          <div style={{ margin: 0, fontFamily: MC.display, fontSize: "0.9rem" }}>Resume Comparison</div>
           <p style={{ margin: 0, fontSize: "0.75rem", color: T.text3 }}>Compare two versions of YOUR resume. It won't rank people or claim a winner.</p>
         </div>
         <button onClick={() => setIsDark((d) => { try { localStorage.setItem("cv_theme", d ? "light" : "dark"); } catch {} return !d; })} aria-label="Toggle theme" style={{ width: 36, height: 36, background: T.bg3, border: `2px solid ${T.ink}`, borderRadius: 4, color: T.text, cursor: "pointer", boxShadow: `2px 2px 0 ${T.ink}` }}>{isDark ? "☀" : "☾"}</button>
       </header>
 
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "1.5rem 1rem 4rem" }}>
+        {/* W-3a: the single, unmissable page heading (consistent with Resume Reviewer) */}
+        <div style={{ marginBottom: "20px" }}>
+          <h1 style={{ margin: 0, fontFamily: MC.display, fontSize: "clamp(1.7rem, 5vw, 2.6rem)", lineHeight: 1.1, letterSpacing: "0.01em", color: T.text }}>Resume Comparison</h1>
+          <p style={{ margin: "8px 0 0", fontSize: "1rem", lineHeight: 1.6, color: T.text2, maxWidth: "60ch" }}>Compare two versions of your resume side by side and see exactly what changed — no ranking, no winner.</p>
+        </div>
+
         <BlockCard tone={isDark ? "stone" : "parchment"} title="1 · Two versions" style={{ marginBottom: "24px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px" }} className="cmp-grid">
             {[{ v: a, set: setA, label: labelA, setLabel: setLabelA, ph: "Paste Resume A…" }, { v: b, set: setB, label: labelB, setLabel: setLabelB, ph: "Paste Resume B…" }].map((slot, i) => (
@@ -207,7 +216,7 @@ export default function ComparePage() {
             <textarea value={jd} onChange={(e) => setJd(e.target.value)} placeholder="Optional: paste a job description to check which requirement terms appear (found in text, not proof of skill)…" aria-label="Job description" style={{ width: "100%", minHeight: 90, boxSizing: "border-box", padding: "0.6rem", background: T.bg2, color: T.text, border: `2px solid ${T.ink}`, borderRadius: 4, fontFamily: "inherit", fontSize: "0.9rem", lineHeight: 1.5 }} />
           </div>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "12px" }}>
-            <BlockButton variant="grass" onClick={analyze} disabled={(!a.trim() && !b.trim()) || loading}>{loading ? "Crafting…" : "Compare"}</BlockButton>
+            <BlockButton variant="grass" onClick={analyze} disabled={(!a.trim() && !b.trim()) || loading}>{loading ? "Comparing…" : "Compare"}</BlockButton>
             <BlockButton variant="redstone" onClick={clearAll}>Clear everything</BlockButton>
           </div>
           <p style={{ fontSize: "0.72rem", color: T.text3, marginTop: "10px", lineHeight: 1.5 }}>Privacy: text stays in this tab. Only the optional AI step sends it to the model provider via /api/chat. Nothing is saved to storage by default.</p>

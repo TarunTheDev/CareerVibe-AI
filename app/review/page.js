@@ -5,7 +5,7 @@ import Link from "next/link";
 import { runResumeChecks, quoteIsInSource } from "@/lib/resumeChecks.mjs";
 import { normalizeSkillList } from "@/lib/skillNormalize.mjs";
 import { BlockButton, BlockCard, CheckSlot, QuoteBlock, AdvancementToast, MiningLoader, MC } from "@/components/pixel/ui.jsx";
-import { McFace } from "@/components/pixel/McCharacter";
+import PixelCharacter from "@/components/pixel/PixelCharacter";
 
 // Synthetic, clearly-labeled sample resume. Never presented as real.
 const SAMPLE_RESUME = `Priya Sharma
@@ -61,6 +61,10 @@ export default function ReviewPage() {
   const [text, setText] = useState("");
   const [targetRole, setTargetRole] = useState("");
   const [fileName, setFileName] = useState("");
+  const [fileSize, setFileSize] = useState(null);
+  // W-3b: distinct intake states — idle | parsing | success | error
+  const [parseState, setParseState] = useState("idle");
+  const [fileError, setFileError] = useState("");
   const [ai, setAi] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiUnavailable, setAiUnavailable] = useState(false);
@@ -82,21 +86,84 @@ export default function ReviewPage() {
     return set;
   }, [checks, ai]);
 
-  const readFile = useCallback((file) => {
+  const MAX_BYTES = 10 * 1024 * 1024;
+
+  const fmtSize = (n) => {
+    if (n == null) return "";
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // W-3b: reuse the SAME parsing path as the landing upload (/api/parse-resume,
+  // which extracts PDF via pdf-parse, DOCX via mammoth, TXT directly, and
+  // rejects scanned/image-only files). No second parser is written here.
+  const readFile = useCallback(async (file) => {
     if (!file) return;
+    setFileError("");
+    const isPdf = /\.pdf$/i.test(file.name) || file.type === "application/pdf";
+    const isDocx = /\.docx$/i.test(file.name) ||
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    const isText = /\.(txt|md|csv)$/i.test(file.name) || (file.type || "").startsWith("text/");
+
+    if (!isPdf && !isDocx && !isText) {
+      setFileName(""); setFileSize(null); setText(""); setParseState("error");
+      setFileError("Unsupported file type — upload a PDF, DOCX, or plain text (.txt) file.");
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      setFileName(""); setFileSize(null); setText(""); setParseState("error");
+      setFileError("That file is larger than 10 MB — please upload a smaller resume.");
+      return;
+    }
+    if (file.size === 0) {
+      setFileName(""); setFileSize(null); setText(""); setParseState("error");
+      setFileError("That file is empty (0 bytes) — please upload your resume.");
+      return;
+    }
+
     setFileName(file.name);
-    if (/\.(txt|md|csv)$/i.test(file.name) || file.type.startsWith("text/")) {
-      const reader = new FileReader();
-      reader.onload = () => setText(String(reader.result || ""));
-      reader.readAsText(file);
-    } else {
-      setText("");
-      setToast({ title: "Paste your text", line: `${file.name} isn't plain text — paste it below, or upload PDF/DOCX on the Home screen first.` });
+    setFileSize(file.size);
+    setParseState("parsing");
+    try {
+      const fd = new FormData();
+      fd.append("resume", file);
+      const res = await fetch("/api/parse-resume", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = String(data?.error || "");
+        if (isPdf && /image scan|scanned|extract text|text-based/i.test(msg)) {
+          setFileError("This looks like a scanned PDF — try a text-based PDF or a DOCX/TXT file");
+        } else {
+          setFileError(msg || "Could not parse that file — please try again.");
+        }
+        setText(""); setParseState("error");
+        return;
+      }
+      const extracted = String(data?.resumeText || "");
+      if (!extracted.trim()) {
+        setFileError("No text found in that file — try a text-based PDF, DOCX, or TXT file.");
+        setText(""); setParseState("error");
+        return;
+      }
+      setText(extracted);
+      setAi(null); setAiUnavailable(false);
+      setParseState("success");
+      setToast({ title: "Resume loaded", line: `${file.name} parsed — run the review when you're ready.` });
+    } catch (e) {
+      setFileError("Could not parse that file — please try again.");
+      setText(""); setParseState("error");
     }
   }, []);
 
+  const removeFile = () => {
+    setFileName(""); setFileSize(null); setText(""); setFileError(""); setParseState("idle");
+    setAi(null); setAiUnavailable(false);
+  };
+
   const clearAll = () => {
-    setText(""); setTargetRole(""); setFileName(""); setAi(null); setAiUnavailable(false);
+    setText(""); setTargetRole(""); setFileName(""); setFileSize(null);
+    setParseState("idle"); setFileError(""); setAi(null); setAiUnavailable(false);
     try { localStorage.removeItem("cv_review_v1"); } catch {}
   };
 
@@ -145,25 +212,56 @@ Resume:
       {/* Header */}
       <header style={{ position: "sticky", top: 0, zIndex: 50, background: T.bg2, borderBottom: `3px solid ${T.ink}`, boxShadow: `0 3px 0 ${T.ink}`, display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem" }}>
         <Link href="/" style={{ color: T.text2, textDecoration: "none", fontSize: "0.85rem", fontWeight: 700 }}>← Back</Link>
-        <McFace id="mentor" size={30} style={{ border: `2px solid ${T.ink}`, borderRadius: 3 }} />
+        <span style={{ display: "inline-flex", border: `2px solid ${T.ink}`, borderRadius: 3, background: T.bg3, lineHeight: 0 }}>
+          <PixelCharacter name="lumi" pose="wave" size={30} decorative />
+        </span>
         <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0, fontFamily: MC.display, fontSize: "0.9rem", letterSpacing: "0.02em" }}>The Anvil</h1>
-          <p style={{ margin: 0, fontSize: "0.75rem", color: T.text3 }}>Resume reviewer — honest, specific feedback. No ATS score, no hiring prediction.</p>
+          {/* Not an h1 — the single page h1 lives in <main> below (W-3a). */}
+          <div style={{ margin: 0, fontFamily: MC.display, fontSize: "0.9rem", letterSpacing: "0.02em" }}>Resume Reviewer</div>
+          <p style={{ margin: 0, fontSize: "0.75rem", color: T.text3 }}>Get your resume reviewed — here's what stands out and what to fix.</p>
         </div>
         <button onClick={() => setIsDark((d) => { try { localStorage.setItem("cv_theme", d ? "light" : "dark"); } catch {} return !d; })} aria-label="Toggle theme" style={{ width: 36, height: 36, background: T.bg3, border: `2px solid ${T.ink}`, borderRadius: 4, color: T.text, cursor: "pointer", boxShadow: `2px 2px 0 ${T.ink}` }}>{isDark ? "☀" : "☾"}</button>
       </header>
 
       <main style={{ maxWidth: 1100, margin: "0 auto", padding: "1.5rem 1rem 4rem" }}>
+        {/* W-3a: the single, unmissable page heading */}
+        <div style={{ marginBottom: "20px" }}>
+          <h1 style={{ margin: 0, fontFamily: MC.display, fontSize: "clamp(1.7rem, 5vw, 2.6rem)", lineHeight: 1.1, letterSpacing: "0.01em", color: T.text }}>Resume Reviewer</h1>
+          <p style={{ margin: "8px 0 0", fontSize: "1rem", lineHeight: 1.6, color: T.text2, maxWidth: "60ch" }}>Upload your resume and get an honest, scored review with fixes you can act on today.</p>
+        </div>
+
         {/* Input */}
         <BlockCard tone={isDark ? "stone" : "parchment"} title="1 · Your resume" style={{ marginBottom: "24px" }}>
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginBottom: "12px" }}>
             <label style={{ position: "relative" }}>
-              <input type="file" accept=".txt,.md,.csv,.pdf,.docx,text/*" onChange={(e) => readFile(e.target.files?.[0])} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} aria-label="Upload resume text file" />
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.5rem 0.9rem", background: T.bg3, border: `2px solid ${T.ink}`, borderRadius: 4, fontSize: "0.85rem", fontWeight: 700, cursor: "pointer", boxShadow: `2px 2px 0 ${T.ink}` }}>Upload (.txt)</span>
+              <input type="file" accept=".pdf,.docx,.txt,.md,.csv,application/pdf,text/*" onChange={(e) => { readFile(e.target.files?.[0]); e.target.value = ""; }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", minWidth: 44, minHeight: 44 }} aria-label="Upload resume (PDF, DOCX, or TXT)" />
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.6rem 1rem", minHeight: 44, boxSizing: "border-box", background: T.bg3, border: `2px solid ${T.ink}`, borderRadius: 4, fontSize: "0.85rem", fontWeight: 700, cursor: "pointer", boxShadow: `2px 2px 0 ${T.ink}` }}>{fileName ? "Replace file" : "Upload resume"}</span>
             </label>
-            <BlockButton variant="stone" onClick={() => { setText(SAMPLE_RESUME); setFileName("sample-resume.txt"); }}>Use sample resume</BlockButton>
-            <span style={{ fontSize: "0.8rem", color: T.text3 }}>{fileName ? `Loaded: ${fileName}` : "Paste, upload, or use the sample."}</span>
+            <BlockButton variant="stone" onClick={() => { setText(SAMPLE_RESUME); setFileName("sample-resume.txt"); setFileSize(null); setFileError(""); setParseState("success"); setAi(null); setAiUnavailable(false); }}>Use sample resume</BlockButton>
+            {!fileName && <span style={{ fontSize: "0.8rem", color: T.text3 }}>PDF, DOCX or TXT — or paste below, or use the sample.</span>}
           </div>
+
+          {/* W-3b: file chip — name + size + remove + replace */}
+          {fileName && (
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", padding: "0.6rem 0.75rem", marginBottom: "12px", background: T.bg3, border: `2px solid ${T.ink}`, borderRadius: 4, boxShadow: `2px 2px 0 ${T.ink}` }}>
+              <span style={{ fontWeight: 700, fontSize: "0.85rem", wordBreak: "break-all" }}>{fileName}</span>
+              {fileSize != null && <span style={{ fontSize: "0.75rem", color: T.text3 }}>{fmtSize(fileSize)}</span>}
+              {parseState === "parsing" && <span style={{ fontSize: "0.78rem", color: T.text2 }}>Parsing…</span>}
+              {parseState === "success" && <span style={{ fontSize: "0.78rem", color: T.accent, fontWeight: 700 }}>✓ Parsed</span>}
+              <button onClick={removeFile} aria-label={`Remove ${fileName}`} style={{ marginLeft: "auto", minHeight: 32, padding: "0.2rem 0.6rem", background: "transparent", border: `2px solid ${T.ink}`, borderRadius: 4, color: T.text, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700 }}>Remove</button>
+            </div>
+          )}
+
+          {/* W-3b: distinct parsing / error states */}
+          {parseState === "parsing" && (
+            <div style={{ marginBottom: "12px" }}><MiningLoader label="Reading your resume…" /></div>
+          )}
+          {parseState === "error" && fileError && (
+            <div role="alert" style={{ padding: "0.7rem 0.9rem", marginBottom: "12px", background: "rgba(216,64,46,0.14)", border: `2px solid ${MC.redstone}`, borderRadius: 4, color: T.text, fontSize: "0.85rem", fontWeight: 600 }}>
+              {fileError}
+            </div>
+          )}
+
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -206,7 +304,7 @@ Resume:
               </BlockCard>
 
               {aiLoading && (
-                <BlockCard tone={isDark ? "stone" : "parchment"} title="AI feedback"><div style={{ padding: "1rem 0" }}><MiningLoader label="The anvil is heating up…" /></div></BlockCard>
+                <BlockCard tone={isDark ? "stone" : "parchment"} title="AI feedback"><div style={{ padding: "1rem 0" }}><MiningLoader label="Reviewing your resume…" /></div></BlockCard>
               )}
 
               {aiUnavailable && (
