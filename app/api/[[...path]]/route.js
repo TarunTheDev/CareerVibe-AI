@@ -10,9 +10,9 @@ const LLM_BASE =
   process.env.LLM_BASE_URL || "https://integrations.emergentagent.com/llm/v1";
 const LLM_PROVIDER = (process.env.LLM_PROVIDER || "local").toLowerCase();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS || 15000);
@@ -112,7 +112,11 @@ async function callGemini(systemPrompt, userContent) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.35 },
+            // gemini-3.x-flash is a thinking model: it spends part of the output
+            // budget on internal reasoning (thoughtsTokenCount). Without an
+            // explicit cap the visible answer is truncated mid-JSON, which makes
+            // every strict-JSON caller fail. 4096 leaves room for thoughts + answer.
+            generationConfig: { temperature: 0.35, maxOutputTokens: 4096 },
           }),
         },
       );
