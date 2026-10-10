@@ -4668,6 +4668,10 @@ export default function App() {
   const [isDark, setIsDark] = useState(true);
   const [tourOpen, setTourOpen] = useState(false);
   const [appState, setAppState] = useState("landing");
+  // W-4: true once the auth/profile-load effect has run for the current user.
+  // While a logged-in user is still bootstrapping we show the spinner instead of
+  // flashing the landing/upload screen on a fresh mount of "/".
+  const [bootstrapped, setBootstrapped] = useState(false);
   const [activeTab, setActiveTab] = useState("find");
   const [findState, setFindState] = useState("upload");
   const [profile, setProfile] = useState(null);
@@ -4926,14 +4930,23 @@ export default function App() {
     setAppliedJobs(appliedData);
     setLearningPlan(learningPlanData);
 
-    // Fix 2 + 3: Only show cached data if it actually exists for THIS user
-    if (cachedProfile && cachedJobs.length > 0) {
+    // W-4: Never bounce an authed user WITH a durable profile back to the
+    // upload screen. The dashboard's source of truth is getUserJSON(uid,"profile").
+    // If a profile exists we always land on a post-profile screen — results when
+    // jobs are cached, otherwise the profile-review screen (which offers
+    // "Find Matches"). Only a genuinely profile-less user gets the upload screen.
+    if (cachedProfile) {
       setProfile(cachedProfile);
-      setJobs(cachedJobs);
-      setFindState("results");
+      if (cachedJobs.length > 0) {
+        setJobs(cachedJobs);
+        setFindState("results");
+      } else {
+        setJobs([]);
+        setFindState("review");
+      }
       setAppState("app");
     } else {
-      // Fix 3: No data for this user → fresh upload screen
+      // No profile for this user → fresh upload screen
       setProfile(null);
       setJobs([]);
       setFindState("upload");
@@ -4942,6 +4955,9 @@ export default function App() {
         setAppState("app");
       }
     }
+    // W-4: mark bootstrap complete so a logged-in re-mount of "/" never flashes
+    // the landing/upload screen before this effect resolves.
+    setBootstrapped(true);
   }, [user]);
 
   const T = makeT(isDark);
@@ -5105,8 +5121,9 @@ export default function App() {
     logActivity(`${exists ? "Unsaved" : "Saved"}: ${job.title}`);
   };
 
-  // Show loading spinner only while auth is loading
-  if (authLoading) {
+  // Show loading spinner while auth is loading, or while a logged-in user's
+  // profile is still bootstrapping (W-4: prevents a landing/upload flash).
+  if (authLoading || (user && !bootstrapped)) {
     return (
       <div
         style={{

@@ -425,7 +425,7 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
 |----|---------|-----------|-------|--------|
 | W-1 | Nav visible on upload/review screens | AppNavbar + MobileBottomBar render unconditionally in appState==="app" | app/page.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
 | W-2 | Skill World tab in nav + onboarding | tab in 3 arrays + tour step + guide copy | app/page.js, MobileBottomBar.js, Hotbar.jsx, Tour.jsx | **FIXED [CODE-REVIEW + grep-proof + all routes compile 200]** |
-| W-4 | Back from Resume Lab → upload | profile-load else branch discards cachedProfile when jobs empty | app/page.js | pending |
+| W-4 | Back from Resume Lab → upload | profile-load else branch discards cachedProfile when jobs empty | app/page.js | **FIXED [CODE-REVIEW + compiles clean; live click-path pending]** |
 | W-5 | Steps popup re-appears | global cv_tour_v1, written only on close, not user-scoped | app/page.js, Tour.jsx, userStorage.js | pending |
 | W-3 | Anvil/Crafting jargon; review tab no PDF | legacy persona names; readFile rejects PDF/DOCX | review/page.js, compare/page.js | pending |
 
@@ -470,3 +470,35 @@ separate routes `/review` and `/compare`; Skill World is `/world`.
      "← Back" affordance to the dashboard; no console errors.
 - **Status:** all four routes (`/`, `/review`, `/compare`, `/world`) compile and return HTTP 200;
   grep-proofed. RUN-VERIFIED for compile + grep; the visual nav layout is code-review only.
+
+### W-4 — back-navigation / profile-guard fix
+- **Root cause (confirmed in code):** the profile-load effect's else branch
+  (`app/page.js`) fired whenever `cachedJobs.length === 0`, and it did `setProfile(null);
+  setFindState("upload")` — discarding a perfectly valid `cachedProfile`. So an authed user
+  WITH a profile but without cached jobs (e.g. jobs request had returned empty, or they never
+  completed "Find Matches") was bounced to the upload screen on every re-mount of `/`
+  (which is what `<Link href="/">← Back</Link>` from `/review`, `/compare` and `/world` does).
+  Secondary: a logged-in fresh mount of `/` rendered one frame of `appState==="landing"`
+  before the effect resolved.
+- **Change:**
+  1. The guard now keys on the SAME durable source the dashboard uses
+     (`getUserJSON(uid,"profile")`). If a profile exists it ALWAYS lands post-profile:
+     `results` when jobs are cached, otherwise the `review` (profile-review) screen which
+     offers "Find Matches". Only a genuinely profile-less user gets `upload`.
+  2. Added a `bootstrapped` flag set at the end of the auth effect; the loading gate is now
+     `if (authLoading || (user && !bootstrapped))` → spinner, so a logged-in re-mount of `/`
+     never flashes landing/upload before the profile resolves.
+  3. Guard redirects already use `router.replace` (`/login` when signed out); there is no
+     `/upload` route, so no guard pushes upload into the post-profile history stack.
+- **Files:** `app/page.js`.
+- **How to verify (browser):**
+  1. login → upload → review profile → Find Matches → dashboard.
+  2. Dashboard → Resume Lab (top nav). Click "← Back": lands on the DASHBOARD (not upload),
+     no landing flash. Browser Back: same.
+  3. Refresh while on Resume Lab: stays on Resume Lab. Refresh on the dashboard: stays on the
+     dashboard (nav intact).
+  4. Logout → login: straight to the dashboard (profile exists), never the upload screen.
+  5. Account menu → Clear my data: back to first-run upload screen (profile genuinely gone).
+  6. A user with NO profile who opens `/review` and clicks Back still ends up on upload.
+- **Status:** compiles clean (HTTP 200). Logic is code-review verified; the click-path above
+  (needs real auth + cached-profile states) is the browser confirmation only the user can run.
