@@ -54,7 +54,7 @@ because no browser could be run.
 - [x] **0. Setup & inspection** — repo inspected, git initialized, AUDIT.md created,
       Node runtime confirmed, environment blockers recorded.
 - [x] **1. `lib/salary` + wire every money surface + unit tests (P0)** — see Finding P0-1.
-- [ ] **2. Dashboard bottom-clipping fix + hero video visibility fix (P0)**
+- [x] **2. Dashboard bottom-clipping fix + hero video visibility fix (P0)** — Findings P0-2, P0-3 (code-review only; browser verification blocked in this env).
 - [ ] **3. FileDropZone + Reviewer upgrade**
 - [ ] **4. Compare upgrade (A/B, verdict, best-of-both)**
 - [ ] **5. Agent runtime: types, event log, miner + scout, missions module**
@@ -78,8 +78,8 @@ misleading number. **P1** = serious usability / a11y / mobile breakage. **P2** =
 | ID | Route / component | Viewport | Theme | Problem | Evidence | Severity | Status |
 |----|-------------------|----------|-------|---------|----------|----------|--------|
 | P0-1 | RightSidebar "Salary Intelligence" (also job card, career path) | all | both | Salary showed "₹21000L – ₹96L per annum": a monthly figure labeled as lakhs, and the two bounds normalized on different scales. | `components/RightSidebar.js:29` old `fmtSalary`; render `:1281` | P0 | **FIXED [RUN-VERIFIED]** |
-| P0-2 | Dashboard bottom | 360–1280 | both | Last job card / footer reportedly cut off at scroll end. | TBD (Part 1.2) | P0 | not started |
-| P0-3 | Landing hero | all | both | Hero background video too faint / barely visible. | TBD (Part 1.3) | P0 | not started |
+| P0-2 | Dashboard (`.dashboard-center` scroll container) | 360–768 | both | Last job card / list footer / pipeline end covered by the fixed mobile hotbar. | `app/globals.css:1147`, `components/MobileBottomBar.js:21` | P0 | **FIXED [CODE-REVIEW ONLY]** |
+| P0-3 | Landing hero | all | both | Hero video barely visible — smothered by a full-screen cream/ink wash. | `components/landing-retro.css:395` `.rv-hero__scrim` | P0 | **FIXED [CODE-REVIEW ONLY]** |
 
 ### P0-1 — Salary Intelligence (detail)
 
@@ -129,6 +129,60 @@ misleading number. **P1** = serious usability / a11y / mobile breakage. **P2** =
 
 **Not visually verified:** the rendered panel was not opened in a browser (no browser here).
 Logic + string output are run-verified; pixel layout is **[CODE-REVIEW ONLY]**.
+
+---
+
+### P0-2 — Dashboard bottom clipping (detail)
+
+**Root cause (reported, as the mission asked):** the fixed mobile hotbar overlaps the end of
+the scroll content, and the reserved space was too small.
+- `.dashboard-center` (`app/globals.css:945`) is the real scroll container (`.app-shell` and
+  `.dashboard-main` are `height:100vh; overflow:hidden`). At ≤768px it reserved a fixed
+  `padding-bottom: 64px` (was `globals.css:1148`).
+- `.mobile-bottom-bar` is `position:fixed; height:60px` **plus**
+  `padding-bottom: env(safe-area-inset-bottom)` (`components/MobileBottomBar.js:21-22`). On a
+  home-indicator device the bar is ~94px tall, so ~30px of the last card/footer was covered.
+  Even with no safe-area, 4px clearance clipped card shadows/focus rings.
+- `.dashboard-layout.upload-mode .dashboard-center { padding: 24px }` (higher specificity)
+  also **overrode** the mobile bottom padding entirely in upload mode.
+
+**Fix:** at ≤768px the center now reserves
+`padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px))` (60px bar + 24px breathing
+room + safe-area) and the same value as `scroll-padding-bottom` (so `scrollIntoView`/anchor
+jumps clear the bar). Added a matching override for upload mode. One fix on the shared scroll
+container covers the job list, the list footer, and the pipeline end uniformly.
+
+**Status: [CODE-REVIEW ONLY, not visually verified]** — correct by inspection; could not open
+a browser to run the scroll-to-bottom bounding-box assertion the mission specifies. That
+automation is **not run** in this environment.
+
+### P0-3 — Faint hero video (detail)
+
+**Root cause (reported):** `.rv-hero__scrim` (`components/landing-retro.css:395`) was a
+**full-screen wash** — a `linear-gradient` of cream at **0.92 → 0.68 opacity** (light) /
+ink at **0.88 → 0.66** (dark) covering the entire hero, plus a second radial gradient. The
+`<video>` element itself had **no opacity override** (it was already 1); the scrim alone was
+smothering it. No ffmpeg re-grade was needed for the visibility problem.
+
+**Fix (localized treatment only, per the mission):**
+- Video stays `opacity: 1`; the full-screen wash is **removed**.
+- `.rv-hero__scrim` is now an **edge-only vignette** (transparent center → ~0.22/0.34 alpha at
+  the outer edges; slightly stronger in dark theme) — "light vignette at the outer edges only".
+- Text legibility moved to a **localized chunky panel** on `.rv-hero-inner` (parchment
+  `rgba(247,238,216,0.94)` in light, ink `rgba(24,24,24,0.92)` in dark) with the retro bevel
+  (`--rv-bw`/`--rv-line`/`--rv-shadow`), `max-width: min(780px, 92vw)`, centered. The floating
+  stickers sit at the hero edges (outside the panel) so the video reads clearly around and
+  behind the content in both themes.
+
+**Not done:** the "re-grade the clip from the original with ffmpeg" branch — there is no
+original source in the repo (only the exported `hero.mp4` / `hero-mobile.mp4` / `poster.webp`)
+and ffmpeg is not confirmed in this environment. Existing exports already meet the size targets
+(hero.mp4 ≈ 860 KB ≤ 2.5 MB, hero-mobile ≈ 291 KB, poster.webp ≈ 55 KB) and HeroVideo.js
+already pauses offscreen/tab-hidden and uses poster-only for reduced-motion/Save-Data.
+
+**Status: [CODE-REVIEW ONLY, not visually verified]** — could not sample rendered frames or
+measure text-over-video contrast (AA) without a browser. The mission's Part 7 re-audit of this
+fix is therefore **pending a real browser**.
 
 ---
 

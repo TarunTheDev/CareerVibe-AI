@@ -1145,7 +1145,19 @@
     }
 
     .dashboard-center {
-        padding-bottom: 64px;
+        /* Reserve the REAL bottom-bar height (60px) + device safe-area + 24px
+           breathing room, so the last job card, the list footer and the end of
+           the pipeline are fully visible and reachable — never covered by the
+           fixed hotbar. scroll-padding-bottom keeps scrollIntoView/anchor jumps
+           clear of the bar too. */
+        padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+        scroll-padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Upload mode reuses .dashboard-center but its base rule sets padding:24px
+       with higher specificity, which dropped the bar clearance. Restore it. */
+    .dashboard-layout.upload-mode .dashboard-center {
+        padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
     }
 
     .left-sidebar,

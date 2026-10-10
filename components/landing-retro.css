@@ -393,15 +393,15 @@
   object-position: center 45%;
 }
 .rv-hero__scrim {
-  /* cream scrim for WCAG AA (light theme): lifts --rv-ink text vs video */
+  /* EDGE-ONLY vignette. The video itself stays at full opacity and is clearly
+     visible across the whole hero; text legibility is handled by the localized
+     panel on .rv-hero-inner (below), NOT by washing out the entire clip. */
   background:
-    linear-gradient(180deg, rgba(247,238,216,0.92) 0%, rgba(247,238,216,0.82) 28%, rgba(247,238,216,0.68) 52%, rgba(226,207,164,0.72) 100%),
-    radial-gradient(120% 70% at 50% 18%, rgba(247,238,216,0.55) 0%, transparent 62%);
+    radial-gradient(125% 95% at 50% 48%, transparent 52%, rgba(0,0,0,0.22) 88%, rgba(0,0,0,0.34) 100%);
 }
 .rv-root[data-theme="dark"] .rv-hero__scrim {
   background:
-    linear-gradient(180deg, rgba(27,27,27,0.88) 0%, rgba(27,27,27,0.78) 30%, rgba(27,27,27,0.66) 54%, rgba(38,38,38,0.70) 100%),
-    radial-gradient(120% 70% at 50% 18%, rgba(38,38,38,0.45) 0%, transparent 62%);
+    radial-gradient(125% 95% at 50% 48%, transparent 50%, rgba(0,0,0,0.30) 88%, rgba(0,0,0,0.44) 100%);
 }
 .rv-hero .rv-hero-inner { position: relative; z-index: 1; }
 .rv-hero .rv-sticker { z-index: 1; }
@@ -411,6 +411,24 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  /* LOCALIZED parchment panel behind the headline + buttons only. Chunky retro
+     bevel so the video reads clearly around and behind the text in light theme. */
+  max-width: min(780px, 92vw);
+  margin: 0 auto;
+  padding: 2.75rem 2rem 2.25rem;
+  background: rgba(247, 238, 216, 0.94);
+  border: var(--rv-bw) solid var(--rv-line);
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 var(--rv-shadow);
+}
+.rv-root[data-theme="dark"] .rv-hero-inner {
+  /* Ink panel for dark theme — same localized treatment, AA contrast on text. */
+  background: rgba(24, 24, 24, 0.92);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+}
+@media (max-width: 480px) {
+  .rv-hero-inner { padding: 2rem 1.15rem 1.75rem; }
 }
 .rv-hero-badge {
   display: inline-flex;
