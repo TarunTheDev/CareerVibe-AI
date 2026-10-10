@@ -57,8 +57,8 @@ because no browser could be run.
 - [x] **2. Dashboard bottom-clipping fix + hero video visibility fix (P0)** — Findings P0-2, P0-3 (code-review only; browser verification blocked in this env).
 - [ ] **3. FileDropZone + Reviewer upgrade**
 - [ ] **4. Compare upgrade (A/B, verdict, best-of-both)**
-- [ ] **5. Agent runtime: types, event log, miner + scout, missions module**
-- [ ] **6. Courier + coach + bard agents; forge-kit mission end to end**
+- [x] **5. Agent runtime: types, event log, miner + scout, missions module** — see Finding A-1. **[RUN-VERIFIED]**
+- [x] **6. Courier + coach + bard agents; forge-kit mission end to end** — Finding A-1. **[RUN-VERIFIED]**
 - [ ] **7. Mission Control UI (nodes, tool chips, log, summary, speech bubbles)**
 - [ ] **8. Kit tab (diff, emails, quest, prep sheet, copy/download/print) + golden cache**
 - [x] **9. Truth layer: normalization, shared matchFor, Reality Score + filter** — see Finding T-1.
@@ -261,6 +261,72 @@ Node runtime:**
 **Status: [CODE-REVIEW ONLY, not visually verified]** — the toggle, the shield badge, and the
 re-filtered list were **not opened in a browser** (no browser/build here). The matching and
 scoring logic they render is run-verified.
+
+---
+
+### A-1 — Agent runtime `lib/agents/` (detail)
+
+**What was built (mission Part 3): a pure, offline-first agent runtime.** No new npm
+dependencies; every module is `.mjs` so it runs under `node --test` with no build step.
+- `lib/agents/types.mjs` — frozen `EVENT` / `AGENT` / `MISSION` / `SOURCE` contracts and
+  `createEventLog(missionId)`: an **append-only** log whose `emit()` records every step and
+  whose `tool(label)` records a matched `TOOL_CALL`→`TOOL_RESULT` pair. `serialize()` yields a
+  plain snapshot for `cv_agent_v1` persistence. This is the single source of truth for the
+  Mission Control timeline (Part 4, deferred) — agents never invent UI state.
+- `lib/agents/json.mjs` — `extractJson(text)` (strips ```json fences, scans for the first
+  **balanced, string-aware** `{…}`/`[…]`, tolerates leading/trailing prose and escaped quotes;
+  returns `null` on garbage, never throws) plus defensive coercers (`asString/asNumber/asArray/
+  asObject/cleanStringList/clampInt`).
+- `lib/agents/client.mjs` — `callChat(prompt, maxTokens)` posts to the **existing** `/api/chat`
+  proxy (contract untouched) and returns `""` on any failure (matching the route's never-500
+  behavior). `askJSON({prompt, validate, retries, caller})` parses → validates → retries and
+  returns `{data, source, attempts}`; `data:null` signals "use your fallback". The network
+  `caller` is **injectable**, so the whole parse/validate/retry path is unit-testable with zero
+  AI and zero network.
+- `lib/agents/agents.mjs` — the **six agents** via one `defineAgent` factory. Each `run(ctx, log)`
+  emits `AGENT_START → TOOL_CALL → TOOL_RESULT → AGENT_END`, calls `askJSON` with a strict
+  validator, and on any failure runs a **deterministic fallback derived only from real input**
+  (never invented employers, dates, metrics, or URLs). Provenance (`model` vs `fallback`) is
+  returned per agent so nothing is passed off as AI output when it isn't. Agents:
+  - **miner** — resume → `{summary, skills, yearsExperience, seniority, location}`.
+  - **scout** — skills/target → 1–3 realistic roles (fallback maps a primary skill family to a
+    role title; no fabricated companies).
+  - **cartographer** — have vs need → `{matched, gaps[]}`, reusing the **shared `matchFor`** from
+    Part 5, so the gap map is consistent with every card on screen.
+  - **courier** — drafts `{subjectLine, resumeBullets[], coverNote}` for human review.
+    **It never sends anything** (mission rule honored — no submit path exists in the runtime).
+  - **coach** — gaps → an ordered 3-step `{steps[]}` plan (no invented course URLs).
+  - **bard** — honest narration `{headline, bubbles[]}` referencing only real counts.
+- `lib/agents/missions.mjs` — `forgeKit()` (miner →[cartographer]→ courier → bard) and
+  `worldPlan()` (miner → scout → cartographer → coach → bard). Each threads output into the next
+  agent's context, emits `MISSION_START`/`MISSION_END`, and returns `{mission, result, sources,
+  log, usedFallback, allFallback}`.
+
+**Design note (why fallback-first matters here):** this environment has **no AI key**, so
+`/api/chat` returns `""` and every agent takes its fallback path. That is exactly the degraded
+mode the mission demands ("the UI must never break", "no simulated agent steps"): the runtime
+produces a real, deterministic kit/plan from the user's own data and **labels it `fallback`**.
+
+**Verification [RUN-VERIFIED] — `tests/agents.test.mjs`, all groups pass in the Node runtime:**
+- `extractJson`: plain / fenced / prose-wrapped / escaped-quote / bare-array all parse; garbage,
+  empty, and `null` → `null`.
+- `askJSON`: model reply → `source:"model"`; garbage-then-valid → succeeds on attempt 3;
+  unavailable caller → `data:null`; validation-rejecting reply → retries exhausted → `null`.
+- `worldPlan` offline: `allFallback:true`; cartographer matched `react`+`node js` and flagged
+  `typescript`/`docker`/`graphql` as gaps; plan has exactly 3 steps; every agent `source:"fallback"`.
+- Event-log integrity: 1 `mission_start`, 1 `mission_end`, 5 `agent_start`/`agent_end`, ≥5
+  `tool_call`, a `tool_result` with `fellBack:true`, all stamped with the mission id.
+- `forgeKit` offline: subject line names the target role; cover note uses the candidate's real
+  name + company; bullets use the resume's own phrasing ("Applied **React** …", not canonical
+  lowercase); no send occurs.
+- Model path: a stub caller returning per-agent JSON yields `usedFallback:false`, `source:"model"`,
+  and the model's plan/headline. Mixed caller → `miner:"model"`, `scout:"fallback"`,
+  `usedFallback:true`, `allFallback:false` (provenance is honest per agent).
+
+**Not built (deferred, out of confirmed scope):** the Mission Control UI (Part 4/step 7) and the
+Kit tab UI (step 8) that would *render* this runtime, and the `cv_agent_v1` persistence wiring.
+The runtime is headless and fully tested; hooking it to React is a separate UI task. No AI key was
+available, so the live `/api/chat` path was exercised only through the injected stub caller.
 
 ---
 
