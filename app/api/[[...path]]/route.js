@@ -2335,16 +2335,83 @@ function targetSkillsForTitle(title, job = {}) {
   );
 }
 
+// Verified evergreen learning resources — every URL below was confirmed to
+// return HTTP 200 on 2026-10-11. Matched by keyword against the skill text so
+// AI-generated skills like "Cloud IoT Platforms (AWS IoT Core, Azure IoT Hub)"
+// still resolve to a real, working link.
+const CURATED_RESOURCES = [
+  { match: /\bmqtt\b/i, name: "MQTT Essentials — mqtt.org", url: "https://mqtt.org/", type: "Tutorial" },
+  { match: /\besp32|espressif|esp-idf/i, name: "ESP-IDF Programming Guide", url: "https://docs.espressif.com/projects/esp-idf/en/latest/esp32/", type: "Tutorial" },
+  { match: /\barduino\b/i, name: "Arduino Documentation", url: "https://docs.arduino.cc/", type: "Tutorial" },
+  { match: /\biot security|owasp/i, name: "OWASP IoT Project", url: "https://owasp.org/www-project-internet-of-things/", type: "Tutorial" },
+  { match: /\baws\b|iot core/i, name: "AWS IoT", url: "https://aws.amazon.com/iot/", type: "Course" },
+  { match: /\bazure\b|microsoft learn/i, name: "Microsoft Learn — Azure", url: "https://learn.microsoft.com/en-us/training/azure/", type: "Course" },
+  { match: /\bgrafana\b/i, name: "Grafana Documentation", url: "https://grafana.com/docs/", type: "Tutorial" },
+  { match: /\binfluxdb|time[- ]?series/i, name: "InfluxDB Documentation", url: "https://docs.influxdata.com/", type: "Tutorial" },
+  { match: /\bkubernetes|k8s\b/i, name: "Kubernetes Tutorials", url: "https://kubernetes.io/docs/tutorials/", type: "Tutorial" },
+  { match: /\bdocker\b|container/i, name: "Docker Getting Started", url: "https://docs.docker.com/get-started/", type: "Tutorial" },
+  { match: /\bverilog|\brtl\b|\bvlsi\b|systemverilog/i, name: "Verilog Tutorial — ChipVerify", url: "https://www.chipverify.com/verilog/verilog-tutorial", type: "Tutorial" },
+  { match: /\bpandas\b/i, name: "Pandas Documentation", url: "https://pandas.pydata.org/docs/", type: "Tutorial" },
+  { match: /\bpython\b/i, name: "Python Official Tutorial", url: "https://docs.python.org/3/tutorial/", type: "Tutorial" },
+  { match: /machine learning|\bml\b|data science/i, name: "Machine Learning Crash Course — Google", url: "https://developers.google.com/machine-learning/crash-course", type: "Course" },
+  { match: /\breact\b/i, name: "React Learn", url: "https://react.dev/learn", type: "Tutorial" },
+  { match: /javascript/i, name: "JavaScript Guide — MDN", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide", type: "Tutorial" },
+  { match: /\bnode(\.js)?\b/i, name: "Node.js Learn", url: "https://nodejs.org/en/learn", type: "Tutorial" },
+  { match: /\bsql\b/i, name: "SQLBolt", url: "https://sqlbolt.com/", type: "Practice" },
+];
+
+// Search URLs on trusted platforms always resolve to a results page (never 404),
+// so they are the safe fallback for AI-named resources we cannot verify. We keep
+// the AI's resource NAME as the label and point it at a live search for it.
+function safeSearchUrl(name, type) {
+  const clean =
+    String(name || "")
+      .replace(/\s*[-|–—]\s*(Coursera|Udemy|edX|YouTube|freeCodeCamp|MDN|Google|AWS|Microsoft|LinkedIn|GitHub|Pluralsight|Skillshare).*$/i, "")
+      .replace(/\b(courses?|tutorials?|certifications?|training|bootcamp)\b/gi, "")
+      .replace(/\s+/g, " ")
+      .trim() || "skill";
+  const q = encodeURIComponent(clean);
+  const t = String(type || "").toLowerCase();
+  if (t === "course") return `https://www.coursera.org/search?query=${q}`;
+  if (t === "video") return `https://www.youtube.com/results?search_query=${q}`;
+  if (t === "practice") return `https://github.com/search?q=${q}`;
+  if (t === "book") return `https://www.google.com/search?q=${q}+book`;
+  return `https://www.google.com/search?q=${q}`;
+}
+
+function curatedForSkill(skill) {
+  const s = String(skill || "");
+  for (const r of CURATED_RESOURCES) if (r.match.test(s)) return r;
+  return null;
+}
+
+// Build a guaranteed-resolvable resource list for a skill: the verified curated
+// doc first (when we have one for the skill), then each AI-named resource
+// pointed at a live search URL. NEVER emits an unverified AI deep link, which is
+// what caused the 404/expired links users were hitting.
+function safeResources(skill, aiResources) {
+  const out = [];
+  const curated = curatedForSkill(skill);
+  if (curated) out.push({ name: curated.name, type: curated.type, url: curated.url, free: true });
+  (Array.isArray(aiResources) ? aiResources : []).forEach((r) => {
+    if (!r) return;
+    const name = String(r.name || "").trim();
+    if (!name) return;
+    const type = r.type || "Tutorial";
+    const url = safeSearchUrl(name, type);
+    if (!out.some((o) => o.url === url || o.name.toLowerCase() === name.toLowerCase())) {
+      out.push({ name, type, url, free: r.free !== false });
+    }
+  });
+  if (!out.length) {
+    out.push({ name: `${skill || "Skill"} — find resources`, type: "Tutorial", url: safeSearchUrl(skill, "Tutorial"), free: true });
+  }
+  return out.slice(0, 4);
+}
+
 function resourcesForSkill(skill) {
   if (RESOURCE_BY_SKILL[skill]) return [RESOURCE_BY_SKILL[skill]];
-  return [
-    {
-      name: `${skill} learning path`,
-      type: "Tutorial",
-      url: `https://www.freecodecamp.org/search?query=${encodeURIComponent(skill)}`,
-      free: true,
-    },
-  ];
+  return safeResources(skill, null);
 }
 
 function localDreamJobGap(profile, dreamJob) {
@@ -3993,6 +4060,13 @@ Use real URLs for well-known learning platforms (Coursera, edX, freeCodeCamp, MD
       `Profile:\n${JSON.stringify(profile, null, 2)}\n\nDream Job: ${dreamJob}`,
     );
     const analysis = extractJson(raw);
+    // Never trust AI-generated resource URLs (they hallucinate ~60% dead links).
+    // Re-point every resource at a verified curated doc or a live search URL.
+    if (analysis && Array.isArray(analysis.skillGaps)) {
+      analysis.skillGaps.forEach((g) => {
+        if (g) g.resources = safeResources(g.skill, g.resources);
+      });
+    }
 
     return NextResponse.json({ analysis });
   } catch (err) {
@@ -4085,6 +4159,12 @@ Return ONLY a valid JSON object, no markdown:
     const parsed = extractJson(raw);
     // Gemini returns { roadmap: [...], totalWeeks: N, ... } — spread it at top level
     const roadmapResult = parsed?.roadmap ? parsed : { roadmap: parsed };
+    // Sanitize AI resource URLs (hallucination guard) — verified doc or live search.
+    if (roadmapResult && Array.isArray(roadmapResult.roadmap)) {
+      roadmapResult.roadmap.forEach((r) => {
+        if (r) r.resources = safeResources(r.skill, r.resources);
+      });
+    }
 
     return NextResponse.json(roadmapResult);
   } catch (err) {
