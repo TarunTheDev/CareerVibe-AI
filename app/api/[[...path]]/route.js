@@ -68,37 +68,52 @@ async function callGemini(systemPrompt, userContent) {
 
   // Groq (OpenAI-compatible) — primary provider: fast + reliable free tier.
   if (GROQ_API_KEY) {
-    try {
-      const resp = await fetchWithTimeout(
-        "https://api.groq.com/openai/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${GROQ_API_KEY}`,
+    // gpt-oss / reasoning models spend the completion budget on internal
+    // reasoning; with the default cap the visible `content` can come back EMPTY
+    // (finish_reason stop, reasoning_tokens high). Cap reasoning + reserve room
+    // for the answer, and retry a couple of times since the empty-content case
+    // is intermittent. Non-reasoning models ignore reasoning_effort, so only
+    // send it when the configured model is a reasoning model.
+    const isReasoningModel = /gpt-oss|reasoning|o1|o3/i.test(GROQ_MODEL);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const resp = await fetchWithTimeout(
+          "https://api.groq.com/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${GROQ_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: GROQ_MODEL,
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userContent },
+              ],
+              temperature: 0.35,
+              max_tokens: 4096,
+              ...(isReasoningModel ? { reasoning_effort: "low" } : {}),
+            }),
           },
-          body: JSON.stringify({
-            model: GROQ_MODEL,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userContent },
-            ],
-            temperature: 0.35,
-          }),
-        },
-      );
+        );
 
-      if (resp.ok) {
-        const data = await resp.json();
-        const text = data.choices?.[0]?.message?.content || "";
-        if (text) return text;
-      } else {
-        const err = await resp.text();
-        console.warn(`Groq API ${resp.status}, falling through:`, err.substring(0, 160));
+        if (resp.ok) {
+          const data = await resp.json();
+          const text = data.choices?.[0]?.message?.content || "";
+          if (text) return text;
+          // Empty content (reasoning ate the budget) — retry before falling through.
+          console.warn(`Groq returned empty content (attempt ${attempt + 1}), retrying`);
+          continue;
+        } else {
+          const err = await resp.text();
+          console.warn(`Groq API ${resp.status}, falling through:`, err.substring(0, 160));
+          break; // real error — fall through to next provider
+        }
+      } catch (e) {
+        console.warn("Groq API unavailable:", e.message);
+        break; // fall through to next provider
       }
-    } catch (e) {
-      console.warn("Groq API unavailable:", e.message);
-      // fall through to next provider
     }
   }
 

@@ -68,6 +68,9 @@ export default function ReviewPage() {
   const [ai, setAi] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiUnavailable, setAiUnavailable] = useState(false);
+  // Gate the results panel (automatic checks + AI feedback) so it only appears
+  // after the user clicks "Run full review" — not the moment a file is parsed.
+  const [reviewed, setReviewed] = useState(false);
   const [toast, setToast] = useState(null);
   const T = makeT(isDark);
 
@@ -147,7 +150,7 @@ export default function ReviewPage() {
         return;
       }
       setText(extracted);
-      setAi(null); setAiUnavailable(false);
+      setAi(null); setAiUnavailable(false); setReviewed(false);
       setParseState("success");
       setToast({ title: "Resume loaded", line: `${file.name} parsed — run the review when you're ready.` });
     } catch (e) {
@@ -158,17 +161,18 @@ export default function ReviewPage() {
 
   const removeFile = () => {
     setFileName(""); setFileSize(null); setText(""); setFileError(""); setParseState("idle");
-    setAi(null); setAiUnavailable(false);
+    setAi(null); setAiUnavailable(false); setReviewed(false);
   };
 
   const clearAll = () => {
     setText(""); setTargetRole(""); setFileName(""); setFileSize(null);
-    setParseState("idle"); setFileError(""); setAi(null); setAiUnavailable(false);
+    setParseState("idle"); setFileError(""); setAi(null); setAiUnavailable(false); setReviewed(false);
     try { localStorage.removeItem("cv_review_v1"); } catch {}
   };
 
   const runAi = async () => {
     if (!text.trim()) return;
+    setReviewed(true);
     setAiLoading(true); setAiUnavailable(false); setAi(null);
     const roleLine = targetRole.trim()
       ? `Target role: "${targetRole.trim()}". Only if relevant, list roleGaps as skills "not found in the resume text" (never say the user lacks a skill).`
@@ -237,7 +241,7 @@ Resume:
               <input type="file" accept=".pdf,.docx,.txt,.md,.csv,application/pdf,text/*" onChange={(e) => { readFile(e.target.files?.[0]); e.target.value = ""; }} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer", minWidth: 44, minHeight: 44 }} aria-label="Upload resume (PDF, DOCX, or TXT)" />
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0.6rem 1rem", minHeight: 44, boxSizing: "border-box", background: T.bg3, border: `2px solid ${T.ink}`, borderRadius: 4, fontSize: "0.85rem", fontWeight: 700, cursor: "pointer", boxShadow: `2px 2px 0 ${T.ink}` }}>{fileName ? "Replace file" : "Upload resume"}</span>
             </label>
-            <BlockButton variant="stone" onClick={() => { setText(SAMPLE_RESUME); setFileName("sample-resume.txt"); setFileSize(null); setFileError(""); setParseState("success"); setAi(null); setAiUnavailable(false); }}>Use sample resume</BlockButton>
+            <BlockButton variant="stone" onClick={() => { setText(SAMPLE_RESUME); setFileName("sample-resume.txt"); setFileSize(null); setFileError(""); setParseState("success"); setAi(null); setAiUnavailable(false); setReviewed(false); }}>Use sample resume</BlockButton>
             {!fileName && <span style={{ fontSize: "0.8rem", color: T.text3 }}>PDF, DOCX or TXT — or paste below, or use the sample.</span>}
           </div>
 
@@ -264,7 +268,7 @@ Resume:
 
           <textarea
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => { setText(e.target.value); setReviewed(false); }}
             placeholder="Paste your resume text here…"
             aria-label="Resume text"
             style={{ width: "100%", minHeight: 180, boxSizing: "border-box", padding: "0.75rem", background: T.bg2, color: T.text, border: `2px solid ${T.ink}`, borderRadius: 4, fontFamily: "inherit", fontSize: "0.95rem", lineHeight: 1.6 }}
@@ -279,7 +283,7 @@ Resume:
           </p>
         </BlockCard>
 
-        {text.trim() && (
+        {text.trim() && reviewed && (
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr)", gap: "24px" }} className="review-grid">
             {/* Left: resume book */}
             <BlockCard tone={isDark ? "stone" : "parchment"} title="Resume (highlights = flagged lines)">
