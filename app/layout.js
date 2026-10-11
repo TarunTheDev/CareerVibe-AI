@@ -1,4 +1,4 @@
-﻿import './globals.css'
+import './globals.css'
 import './retro-overrides.css'
 import './minecraft-theme.css'
 import { AuthProvider } from '@/lib/authContext'
@@ -17,7 +17,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,800;1,9..144,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&family=Press+Start+2P&family=VT323&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Press+Start+2P&display=swap"
           rel="stylesheet"
         />
         <script dangerouslySetInnerHTML={{

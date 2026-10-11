@@ -2,18 +2,21 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "@/lib/authContext";
 import { auth, signOut } from "@/lib/firebase";
-import LeftSidebar from "@/components/LeftSidebar";
-import RightSidebar from "@/components/RightSidebar";
-import MobileBottomBar from "@/components/MobileBottomBar";
-import CareerChangePaths from "@/components/CareerChangePaths";
 import { parseDaysAgo, getFreshness } from "@/components/FreshnessSystem";
 import { salaryLabel } from "@/lib/salary.mjs";
 import { canonicalSkill, matchFor } from "@/lib/skills/normalize.mjs";
 import { isSuspicious, realityScore } from "@/lib/realityScore.mjs";
-import ModernDashboardLayout from "@/components/ModernDashboardLayout";
+
+// ─── Dynamic imports: code-split heavy components (~140KB saved from initial bundle) ───
+const LeftSidebar = dynamic(() => import("@/components/LeftSidebar"), { ssr: false });
+const RightSidebar = dynamic(() => import("@/components/RightSidebar"), { ssr: false });
+const MobileBottomBar = dynamic(() => import("@/components/MobileBottomBar"), { ssr: false });
+const CareerChangePaths = dynamic(() => import("@/components/CareerChangePaths"), { ssr: false });
+const ModernDashboardLayout = dynamic(() => import("@/components/ModernDashboardLayout"), { ssr: false });
 import {
   Briefcase,
   Upload,
@@ -66,7 +69,7 @@ import {
   Trash2,
   HelpCircle,
 } from "lucide-react";
-import LandingPage from "@/components/LandingPage";
+const LandingPage = dynamic(() => import("@/components/LandingPage"), { ssr: false });
 import { McCharacter } from "@/components/pixel/McCharacter";
 import PixelCharacter from "@/components/pixel/PixelCharacter";
 import GuideStrip from "@/components/pixel/GuideStrip";

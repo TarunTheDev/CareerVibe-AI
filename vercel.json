@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install --legacy-peer-deps",
+  "functions": {
+    "app/api/**/*.js": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  }
+}
