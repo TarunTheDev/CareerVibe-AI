@@ -1,205 +1,284 @@
-# CareerVibe 🚀
+<div align="center">
 
-**AI-Powered Resume Parser & Career Path Analyzer**
+# ⚡ CareerVibe AI
 
-CareerVibe is an honest, early-stage MVP that helps job seekers understand their career path through AI-powered resume analysis and skill gap identification. Built with integrity—every claim on our landing page is real.
+### AI-Powered Resume Analyzer · Skill Gap Detector · Career Path Planner
 
-🌐 **Live Demo**: [careervibe-wheat.vercel.app](https://careervibe-wheat.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-careervibe--v2.vercel.app-3ED9A8?style=for-the-badge)](https://careervibe-v2.vercel.app)
+[![Next.js](https://img.shields.io/badge/Next.js_14-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth-FFCA28?style=for-the-badge&logo=firebase)](https://firebase.google.com)
+[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000?style=for-the-badge&logo=vercel)](https://vercel.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
----
+> **Stop guessing your career moves. Start knowing them.**  
+> Upload your resume → Get instant AI analysis → Know exactly what skills to learn next.
 
-## ✨ What CareerVibe Actually Does (v1)
+**[🚀 Try it Live](https://careervibe-v2.vercel.app) · [📹 Demo Video](#) · [🐛 Report Bug](https://github.com/TarunTheDev/CareerVibe-AI/issues)**
 
-### ✅ Shipped Features
-
-1. **AI Resume Parser**
-   - Upload PDF, DOCX, or TXT resumes
-   - AI extracts: name, summary, skills (with tags), education, work experience, industries
-   - Works reliably with Gemini AI
-
-2. **Career Path Simulator**
-   - Enter any target job title
-   - Get: match score (%), transition timeline, market demand rating, salary range
-   - See transferable strengths and skill gaps
-   - Receive a personalized 3-step action plan
-
-3. **Skill Gap Analysis**
-   - Identify exactly which skills you need for your target role
-   - Get learning resources and priority recommendations
-   - Understand market demand for each skill
-
-4. **Profile Management**
-   - Edit your profile and manage your data
-   - Dark/light theme toggle
-   - Privacy controls and data deletion
-
-5. **Authentication**
-   - Email/password signup and login
-   - Google OAuth integration
-   - Secure Firebase authentication
+</div>
 
 ---
 
-## 🚧 In Development
+## 🎯 What is CareerVibe AI?
 
-- Job description matching (one-click tailor resume to job posts)
-- ATS score checker
-- Interview prep AI
-- Smart job matching
-- Application tracker
+CareerVibe AI is a full-stack, AI-powered career intelligence platform that helps job seekers make **smarter career decisions** in seconds — not weeks.
+
+Unlike generic resume builders, CareerVibe:
+- **Understands** your resume deeply with multi-model AI (Groq LLaMA + Google Gemini)
+- **Compares** your skills against real job market requirements
+- **Detects** fake/scam job listings automatically with a Reality Score™ engine
+- **Plans** your career transition with actionable timelines and learning paths
+- **Finds** live job listings from 5+ job APIs simultaneously
+
+---
+
+## ✨ Features
+
+### 🤖 AI Resume Analysis
+- Upload **PDF, DOCX, or TXT** resumes
+- Multi-model AI extraction: name, skills, experience, education, industries
+- Instant skill tag generation with canonical normalization (no duplicates)
+- AI-powered career summary and professional strengths detection
+
+### 📊 Skill Gap Analysis
+- Enter any target job title → see your exact skill match %
+- Visual breakdown of **matched vs. missing skills**
+- Priority-ranked learning recommendations
+- Market demand rating for each required skill
+
+### 🗺️ Career Path Simulator
+- Simulate transitions between any two roles
+- AI-generated: transition timeline, salary range, transferable strengths
+- 3-step personalized action plan for each career move
+- Career DNA radar chart for visual self-assessment
+
+### 🔍 Reality Score™ — Scam Job Detector
+- Proprietary algorithm flags suspicious job listings
+- Detects: salary anomalies, vague descriptions, urgent red flags, credibility signals
+- Color-coded trust indicator on every job card (Green / Yellow / Red)
+- Unique differentiator — **no other career platform has this**
+
+### 💼 Live Job Board
+- Aggregates from **5 job APIs simultaneously**: Adzuna, JSearch, Findwork, Apify, Arbeitsamt
+- Auto-retry with AI-generated fallback jobs if all APIs fail (100% uptime guarantee)
+- Real-time freshness indicators (posted X hours/days ago)
+- One-click skill match scoring per job listing
+
+### 🤖 AI Career Coach (Sidebar)
+- Persistent Gemini-powered chat assistant
+- Context-aware: knows your resume, target role, and skill gaps
+- Answers career questions, interview tips, salary negotiation advice
+
+### 🌍 Career World Map
+- Visualize global job demand by role and location
+- Explore career opportunities across different countries
+
+### 👤 User Profiles
+- Persistent user data with Firebase
+- Dark/Light/Pixel theme switcher
+- Full data privacy controls with one-click deletion
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Next.js 14, React, TailwindCSS
-- **UI Components**: shadcn/ui, Lucide icons
-- **Authentication**: Firebase Auth
-- **AI**: Google Gemini API
-- **Deployment**: Vercel
-- **Styling**: Custom design system with dark/light modes
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 14 (App Router) |
+| **Frontend** | React 18, Vanilla CSS, Lucide Icons |
+| **Authentication** | Firebase Auth (Email + Google OAuth) |
+| **AI — Primary** | Groq API (LLaMA 3.3 70B) |
+| **AI — Fallback** | Google Gemini 2.0 Flash |
+| **AI — Sidebar** | Google Gemini (context-aware chat) |
+| **Job APIs** | Adzuna, JSearch (RapidAPI), Findwork, Apify, Arbeitsamt |
+| **Deployment** | Vercel (Serverless, Edge Functions) |
+| **Performance** | Dynamic imports, code splitting, loading states |
+
+### 🏗️ Architecture Highlights
+
+```
+┌─────────────────────────────────────────────┐
+│             CareerVibe AI Architecture       │
+├─────────────────────────────────────────────┤
+│  Client (Next.js)                           │
+│  ├── Dynamic imports (code splitting)       │
+│  ├── Firebase Auth (client-side)            │
+│  └── Optimistic UI updates                 │
+├─────────────────────────────────────────────┤
+│  API Layer (Serverless Functions)           │
+│  ├── /api/[[...path]]  → AI proxy router   │
+│  ├── /api/ai-coach     → Career coach      │
+│  ├── /api/chat         → Gemini chat       │
+│  └── /api/gemini-sidebar → Sidebar AI      │
+├─────────────────────────────────────────────┤
+│  AI Tier System (100% Uptime)              │
+│  ├── Tier 1: Groq (LLaMA 3.3 70B) — fast  │
+│  ├── Tier 2: Gemini 2.0 Flash — fallback   │
+│  └── Tier 3: Local AI — emergency fallback │
+├─────────────────────────────────────────────┤
+│  Job Aggregation (5 APIs)                  │
+│  Adzuna → JSearch → Findwork → Apify       │
+│  → Auto-fallback AI-generated listings     │
+└─────────────────────────────────────────────┘
+```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
+- Node.js 18+
+- Firebase project
+- Groq API key (free at [console.groq.com](https://console.groq.com))
+- Gemini API key (free at [aistudio.google.com](https://aistudio.google.com))
 
-- Node.js 18+ and npm
-- Firebase project (for authentication)
-- Gemini API key (for AI features)
+### 1. Clone & Install
 
-### Installation
+```bash
+git clone https://github.com/TarunTheDev/CareerVibe-AI.git
+cd CareerVibe-AI
+npm install --legacy-peer-deps
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/TarunTheDev/CareerVibe.git
-   cd CareerVibe
-   ```
+### 2. Set Up Environment Variables
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```bash
+cp .env.example .env.local
+```
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   ```
+Fill in your `.env.local`:
 
-4. **Configure your `.env.local` file**
-   - Add your Firebase credentials
-   - Add your Gemini API key
-   - (Optional) Add job API keys for future features
+```env
+# ── AI ──────────────────────────────────────
+GROQ_API_KEY=your_groq_key
+GROQ_MODEL=llama-3.3-70b-versatile
+GEMINI_API_KEY=your_gemini_key
+GEMINI_MODEL=gemini-2.0-flash
+LLM_PROVIDER=groq
 
-5. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+# ── Firebase ────────────────────────────────
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
 
-6. **Open [http://localhost:3000](http://localhost:3000)**
+# ── Job APIs (optional — fallback AI if missing) ──
+ADZUNA_APP_ID=
+ADZUNA_APP_KEY=
+RAPIDAPI_KEY=
+FINDWORK_KEY=
+APIFY_KEY=
+
+# ── App ─────────────────────────────────────
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
+
+### 3. Run
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) 🎉
 
 ---
 
 ## 📁 Project Structure
 
 ```
-CareerVibe/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   │   ├── ai-coach/      # Career coaching AI endpoint
-│   │   ├── gemini-sidebar/# Sidebar AI features
-│   │   └── [[...path]]/   # Catch-all API proxy
-│   ├── login/             # Login page
-│   ├── signup/            # Signup page
-│   ├── profile/           # User profile page
-│   ├── settings/          # Settings page
-│   └── page.js            # Main dashboard
-├── components/            # React components
-│   ├── LandingPage.js     # Honest landing page
+CareerVibe-AI/
+├── app/
+│   ├── api/
+│   │   ├── [[...path]]/     # Central AI proxy (Groq → Gemini → Local)
+│   │   ├── ai-coach/        # Career coaching endpoint
+│   │   ├── chat/            # Gemini chat endpoint
+│   │   └── gemini-sidebar/  # Sidebar AI endpoint
+│   ├── login/               # Auth pages
+│   ├── signup/
+│   ├── profile/             # User profile
+│   ├── settings/            # App settings
+│   ├── compare/             # Job comparison tool
+│   ├── world/               # Career world map
+│   ├── loading.js           # Instant loading screen
+│   ├── layout.js            # Root layout
+│   └── page.js              # Main dashboard
+├── components/
+│   ├── LandingPage.js       # Landing page
+│   ├── LeftSidebar.js       # Navigation sidebar
+│   ├── RightSidebar.js      # AI insights panel
 │   ├── CareerChangePaths.js # Career path simulator
-│   ├── LeftSidebar.js     # Navigation sidebar
-│   ├── RightSidebar.js    # AI insights sidebar
-│   └── ui/                # shadcn/ui components
-├── lib/                   # Utility functions
-│   ├── firebase.js        # Firebase config
-│   ├── authContext.js     # Auth context provider
-│   └── utils.js           # Helper functions
-└── public/                # Static assets
+│   ├── FreshnessSystem.js   # Job freshness detection
+│   ├── ModernDashboardLayout.js
+│   └── pixel/               # Pixel art UI components
+├── lib/
+│   ├── firebase.js          # Firebase config
+│   ├── authContext.js       # Auth context
+│   ├── realityScore.mjs     # Reality Score™ engine
+│   ├── salary.mjs           # Salary normalization
+│   └── skills/
+│       └── normalize.mjs    # Skill canonicalization
+├── vercel.json              # Vercel deployment config
+└── public/                  # Static assets
 ```
 
 ---
 
-## 🔑 Environment Variables
+## 🌟 What Makes CareerVibe Unique
 
-See `.env.example` for all required environment variables. Key variables:
-
-```env
-# Firebase (Required for auth)
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-
-# Gemini AI (Required for resume parsing and career analysis)
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
-
-# Optional: Job APIs (for future features)
-ADZUNA_APP_ID=
-ADZUNA_APP_KEY=
-RAPIDAPI_KEY=
-```
+| Feature | CareerVibe | LinkedIn | Indeed | Resume.io |
+|---------|-----------|----------|--------|-----------|
+| AI Skill Gap Analysis | ✅ | ❌ | ❌ | ❌ |
+| Reality Score™ (Scam Detection) | ✅ | ❌ | ❌ | ❌ |
+| Multi-API Job Aggregation | ✅ | ❌ | ❌ | ❌ |
+| AI Fallback (100% uptime) | ✅ | ❌ | ❌ | ❌ |
+| Career Path Simulator | ✅ | Partial | ❌ | ❌ |
+| Free | ✅ | Partial | ✅ | ❌ |
 
 ---
 
-## 🎨 Design Philosophy
+## 📸 Screenshots
 
-CareerVibe is built with **honesty and integrity**:
-
-- ❌ No fake testimonials
-- ❌ No fake user metrics
-- ❌ No fake company logos
-- ❌ No fake security badges
-- ✅ Only real, working features
-- ✅ Transparent roadmap
-- ✅ Honest about what's "coming soon"
-
----
-
-## 📝 License
-
-This project is open source and available under the [MIT License](LICENSE).
+> 🌐 **[View Live Demo → careervibe-v2.vercel.app](https://careervibe-v2.vercel.app)**
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome!
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+```bash
+# Fork → Clone → Create branch
+git checkout -b feature/your-feature
 
----
+# Commit
+git commit -m "feat: add your feature"
 
-## 📧 Contact
-
-**Tarun** - [@TarunTheDev](https://github.com/TarunTheDev)
-
-Project Link: [https://github.com/TarunTheDev/CareerVibe](https://github.com/TarunTheDev/CareerVibe)
+# Push & open PR
+git push origin feature/your-feature
+```
 
 ---
 
-## 🙏 Acknowledgments
+## 📄 License
 
-- Built with [Next.js](https://nextjs.org/)
-- UI components from [shadcn/ui](https://ui.shadcn.com/)
-- Icons from [Lucide](https://lucide.dev/)
-- AI powered by [Google Gemini](https://deepmind.google/technologies/gemini/)
-- Deployed on [Vercel](https://vercel.com/)
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with honesty. Shipping in public. 🚀**
+## 👨‍💻 Author
+
+**Tarun** — [@TarunTheDev](https://github.com/TarunTheDev)
+
+---
+
+<div align="center">
+
+**⭐ Star this repo if CareerVibe helped you!**
+
+[![Live Demo](https://img.shields.io/badge/🚀_Try_CareerVibe_Now-careervibe--v2.vercel.app-3ED9A8?style=for-the-badge)](https://careervibe-v2.vercel.app)
+
+*Built for hackathons. Built with ❤️.*
+
+</div>
