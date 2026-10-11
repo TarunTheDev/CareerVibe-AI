@@ -731,42 +731,44 @@ export default function LandingPage({ isDark, T, onStart, toggleTheme, user, onS
 
           <div className="rv-pricing">
             <div ref={addReveal} className="rv-reveal rv-price-card rv-featured">
-              <span className="rv-price-sticker">★ Available now</span>
               <div className="rv-price-name">Beta Access</div>
-              <div className="rv-price-amount">$0</div>
-              <p className="rv-price-desc">Everything we&apos;ve built, completely free. Try it and tell us what&apos;s missing.</p>
+              <div className="rv-price-amount">₹0</div>
+              <div className="rv-price-avail">Available Now</div>
+              <p className="rv-price-desc">Everything you need to start understanding your career profile.</p>
               <ul className="rv-price-feats">
-                {["Unlimited resume uploads", "Full AI profile extraction", "Career path simulation", "Skill gap analysis", "Dark / light retro themes", "Priority support (every email gets read)"].map((f) => (
+                {["AI-powered resume analysis", "Resume profile extraction", "Resume strength and improvement feedback", "Career goal assessment", "Basic skill-gap insights", "Initial career-readiness recommendations"].map((f) => (
                   <li key={f} className="rv-price-feat"><Check size={16} strokeWidth={3} /> {f}</li>
                 ))}
               </ul>
               <a href={ctaHref} onClick={ctaAction} className="rv-btn rv-btn-primary rv-btn-lg" style={{ width: "100%", cursor: "pointer" }}>
-                Join the beta <ArrowRight size={18} className="rv-arrow" />
+                Start for Free <ArrowRight size={18} className="rv-arrow" />
               </a>
             </div>
 
             <div ref={addReveal} className="rv-reveal rv-d1 rv-price-card">
-              <div className="rv-price-name">Early Supporter</div>
-              <div className="rv-price-amount">$5<span className="rv-price-period">/mo</span></div>
-              <p className="rv-price-desc">Support the build and get every new feature before anyone else.</p>
+              <div className="rv-price-name">CareerVibe Plus</div>
+              <div className="rv-price-amount">₹199<span className="rv-price-period">/month</span></div>
+              <div className="rv-price-avail">For Career-Focused Students</div>
+              <p className="rv-price-desc">Go beyond resume analysis and build a clearer path towards your career goals.</p>
               <ul className="rv-price-feats">
-                {["Everything in Beta", "Early access to new features", "Direct founder access", "Shape the roadmap"].map((f) => (
+                {["Everything in Beta", "Resume version comparison", "Detailed skill-gap analysis", "Personalised learning roadmaps", "ATS-oriented resume optimisation", "Career-goal-based recommendations", "Downloadable career reports", "Saved analysis history"].map((f) => (
                   <li key={f} className="rv-price-feat"><Check size={16} strokeWidth={3} /> {f}</li>
                 ))}
               </ul>
-              <button disabled className="rv-btn rv-btn-lg" style={{ width: "100%" }}>Coming soon</button>
+              <button disabled className="rv-btn rv-btn-lg" style={{ width: "100%" }}>Coming Soon</button>
             </div>
 
             <div ref={addReveal} className="rv-reveal rv-d2 rv-price-card">
-              <div className="rv-price-name">Pro</div>
-              <div className="rv-price-amount">TBD</div>
-              <p className="rv-price-desc">The full career toolkit. Priced when the features actually ship — not before.</p>
+              <div className="rv-price-name">CareerVibe Pro</div>
+              <div className="rv-price-amount">₹399<span className="rv-price-period">/month</span></div>
+              <div className="rv-price-avail">For Active Job Seekers</div>
+              <p className="rv-price-desc">Prepare for opportunities with a more complete career-preparation toolkit.</p>
               <ul className="rv-price-feats">
-                {["Job matching", "Interview prep", "Resume strength checks", "Resume tailoring"].map((f) => (
+                {["Everything in Plus", "Job and internship matching", "Resume tailoring for specific roles", "Interview preparation", "Role-specific readiness insights", "Application tracking", "Career progress tracking"].map((f) => (
                   <li key={f} className="rv-price-feat"><Check size={16} strokeWidth={3} /> {f}</li>
                 ))}
               </ul>
-              <button disabled className="rv-btn rv-btn-lg" style={{ width: "100%" }}>Notify me</button>
+              <button disabled className="rv-btn rv-btn-lg" style={{ width: "100%" }}>Notify Me</button>
             </div>
           </div>
         </div>

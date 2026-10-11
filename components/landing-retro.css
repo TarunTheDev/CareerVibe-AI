@@ -1023,23 +1023,6 @@
 .rv-price-card.rv-featured:hover { transform: rotate(0.8deg) scale(1.02) translate(-3px, -3px); box-shadow: 12px 12px 0 var(--rv-orange); }
 .rv-price-card.rv-featured .rv-price-desc,
 .rv-price-card.rv-featured .rv-price-feat { color: color-mix(in srgb, var(--rv-bg) 78%, transparent); }
-.rv-price-sticker {
-  position: absolute;
-  top: -18px;
-  right: 1.4rem;
-  padding: 0.4rem 0.95rem;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background: var(--rv-yellow);
-  color: #17150F;
-  border: var(--rv-bw) solid var(--rv-line);
-  border-radius: 999px;
-  box-shadow: 3px 3px 0 var(--rv-shadow);
-  transform: rotate(3deg);
-  animation: rv-wiggle 5s ease-in-out infinite;
-}
 .rv-price-name {
   font-size: 0.8125rem;
   font-weight: 800;
@@ -1054,6 +1037,14 @@
   margin-bottom: 0.35rem;
 }
 .rv-price-period { font-size: 1rem; font-weight: 600; opacity: 0.6; }
+.rv-price-avail {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--rv-mint);
+  margin-bottom: 0.35rem;
+}
+.rv-price-card:not(.rv-featured) .rv-price-avail { color: var(--rv-ink-soft); }
 .rv-price-desc {
   font-size: 0.9rem;
   line-height: 1.6;
