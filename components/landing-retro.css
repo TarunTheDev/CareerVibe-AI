@@ -375,8 +375,14 @@
 }
 .rv-hero__media,
 .rv-hero__scrim,
+.rv-hero__footage,
 .rv-hero__video,
-.rv-hero__poster {
+.rv-hero__poster,
+.rv-hero__grade,
+.rv-hero__rays,
+.rv-hero__glow,
+.rv-hero__grain,
+.rv-hero__vignette {
   position: absolute;
   inset: 0;
 }
@@ -385,12 +391,68 @@
   overflow: hidden;
   pointer-events: none;
 }
+/* Footage carries the interactive camera transform (set from JS via CSS vars).
+   Base scale >1 so parallax/scroll drift never reveals an edge. */
+.rv-hero__footage {
+  will-change: transform;
+  transform: translate3d(var(--rv-px, 0px), var(--rv-py, 0px), 0) scale(1.07);
+  transform-origin: 50% 45%;
+  transition: transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
 .rv-hero__video,
 .rv-hero__poster {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center 45%;
+  /* Slow Ken-Burns "breathing" so the shot feels alive even when idle. */
+  animation: rv-kenburns 26s ease-in-out infinite alternate;
+}
+@keyframes rv-kenburns {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to   { transform: scale(1.06) translate3d(-1.2%, -1.6%, 0); }
+}
+/* ── Cinematic lens layers (decorative, sit above the footage) ─────────── */
+.rv-hero__grade {
+  /* Warm/teal split-tone grade. */
+  background:
+    linear-gradient(180deg, rgba(255,176,92,0.16) 0%, rgba(255,176,92,0.05) 34%, rgba(20,40,60,0.10) 78%, rgba(12,26,44,0.18) 100%);
+  mix-blend-mode: soft-light;
+  opacity: 0.85;
+}
+.rv-hero__rays {
+  /* Volumetric god-rays drifting slowly across the frame. */
+  background: repeating-linear-gradient(
+    112deg,
+    rgba(255,224,168,0) 0px,
+    rgba(255,224,168,0) 46px,
+    rgba(255,224,168,0.10) 58px,
+    rgba(255,224,168,0.04) 74px,
+    rgba(255,224,168,0) 96px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  -webkit-mask-image: radial-gradient(120% 90% at 22% 8%, #000 0%, rgba(0,0,0,0.5) 42%, transparent 78%);
+  mask-image: radial-gradient(120% 90% at 22% 8%, #000 0%, rgba(0,0,0,0.5) 42%, transparent 78%);
+  animation: rv-rays-drift 18s linear infinite;
+}
+@keyframes rv-rays-drift {
+  from { background-position: 0 0; }
+  to   { background-position: 240px 0; }
+}
+.rv-hero__glow {
+  /* Warm sun-glow that eases toward the pointer (vars set from JS). */
+  background: radial-gradient(38% 34% at var(--rv-gx, 50%) var(--rv-gy, 34%), rgba(255,196,110,0.20) 0%, rgba(255,196,110,0.08) 42%, rgba(255,196,110,0) 72%);
+  mix-blend-mode: screen;
+}
+.rv-hero__grain {
+  /* Faint film grain via inline SVG turbulence (no external asset). */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.07;
+}
+.rv-hero__vignette {
+  background: radial-gradient(120% 92% at 50% 42%, rgba(0,0,0,0) 52%, rgba(0,0,0,0.16) 78%, rgba(0,0,0,0.34) 100%);
 }
 .rv-hero__scrim {
   /* Cinematic, center-weighted scrim. It darkens ONLY the band behind the hero
@@ -404,6 +466,13 @@
   background:
     radial-gradient(92% 66% at 50% 44%, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.16) 66%, rgba(0,0,0,0) 100%),
     linear-gradient(180deg, rgba(0,0,0,0.34) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.46) 100%);
+}
+/* Motion-off: freeze the cinematic camera + rays for reduced-motion users. */
+@media (prefers-reduced-motion: reduce) {
+  .rv-hero__video,
+  .rv-hero__poster { animation: none; }
+  .rv-hero__rays { animation: none; }
+  .rv-hero__footage { transform: scale(1.07); }
 }
 .rv-hero .rv-hero-inner { position: relative; z-index: 1; }
 .rv-hero .rv-sticker { z-index: 1; }
